@@ -531,19 +531,44 @@
     const presetSelect = document.getElementById('date-preset');
     const customContainer = document.getElementById('custom-date-container');
     const weekdayPickerContainer = document.getElementById('weekday-picker-container');
+    const dateFromInput = document.getElementById('date-from');
+    const dateToInput = document.getElementById('date-to');
+    const weekdaySelect = document.getElementById('weekday-select');
+
+    const savedPreset = localStorage.getItem('sp-dashboard-date-preset');
+    if (savedPreset) {
+      presetSelect.value = savedPreset;
+      customContainer.classList.toggle('hidden', savedPreset !== 'custom');
+      weekdayPickerContainer.classList.toggle('hidden', savedPreset !== 'from-weekday');
+      const savedFrom = localStorage.getItem('sp-dashboard-date-from');
+      const savedTo = localStorage.getItem('sp-dashboard-date-to');
+      if (savedPreset === 'custom' && savedFrom) dateFromInput.value = savedFrom;
+      if (savedPreset === 'custom' && savedTo) dateToInput.value = savedTo;
+      const savedWeekday = localStorage.getItem('sp-dashboard-weekday-select');
+      if (savedPreset === 'from-weekday' && savedWeekday) weekdaySelect.value = savedWeekday;
+    }
 
     presetSelect.addEventListener('change', (e) => {
       customContainer.classList.toggle('hidden', e.target.value !== 'custom');
       weekdayPickerContainer.classList.toggle('hidden', e.target.value !== 'from-weekday');
+      localStorage.setItem('sp-dashboard-date-preset', e.target.value);
       processData(cachedTasks, cachedProjects);
     });
 
-    document.getElementById('weekday-select').addEventListener('change', () => processData(cachedTasks, cachedProjects));
+    weekdaySelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-weekday-select', weekdaySelect.value); processData(cachedTasks, cachedProjects); });
 
-    document.getElementById('date-from').addEventListener('change', () => processData(cachedTasks, cachedProjects));
-    document.getElementById('date-to').addEventListener('change', () => processData(cachedTasks, cachedProjects));
-    document.getElementById('bar-chart-select').addEventListener('change', () => updateBarChart());
-    document.getElementById('pie-chart-select').addEventListener('change', () => updatePieChart());
+    dateFromInput.addEventListener('change', () => { localStorage.setItem('sp-dashboard-date-from', dateFromInput.value); processData(cachedTasks, cachedProjects); });
+    dateToInput.addEventListener('change', () => { localStorage.setItem('sp-dashboard-date-to', dateToInput.value); processData(cachedTasks, cachedProjects); });
+    const barChartSelect = document.getElementById('bar-chart-select');
+    const pieChartSelect = document.getElementById('pie-chart-select');
+
+    const savedBar = localStorage.getItem('sp-dashboard-bar-chart-select');
+    const savedPie = localStorage.getItem('sp-dashboard-pie-chart-select');
+    if (savedBar) barChartSelect.value = savedBar;
+    if (savedPie) pieChartSelect.value = savedPie;
+
+    barChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-bar-chart-select', barChartSelect.value); updateBarChart(); });
+    pieChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-pie-chart-select', pieChartSelect.value); updatePieChart(); });
 
     // --- RENDER LOGIC ---
     const updateDashboardUI = (metrics) => {
