@@ -175,8 +175,21 @@
     .stat-icon { padding: 0.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
     .stat-icon svg { width: 20px; height: 20px; }
 
-    .progress-track { width: 100%; background: var(--divider-color, #333); border-radius: 9999px; height: 6px; margin-top: 1rem; overflow: hidden; }
-    .progress-fill { background: #4ade80; height: 100%; transition: width 0.5s ease-out; }
+    .progress-track { width: 100%; background: var(--divider-color, #333); border-radius: 9999px; height: 6px; margin-top: 0.75rem; overflow: hidden; }
+    .progress-fill { height: 100%; transition: width 0.5s ease-out; }
+    .progress-fill-blue { background: #60a5fa; }
+    .progress-fill-green { background: #4ade80; }
+
+    .goal-row { display: flex; align-items: center; gap: 4px; margin-bottom: 0.25rem; }
+    .goal-label { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); }
+    .goal-input {
+      background: transparent; border: none; border-bottom: 1px solid var(--divider-color, #333);
+      color: var(--text-color, #fff); font-size: 0.8rem; width: 44px; outline: none;
+      text-align: right; padding: 0 2px; -moz-appearance: textfield;
+    }
+    .goal-input::-webkit-outer-spin-button, .goal-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .goal-input:focus { border-bottom-color: var(--c-primary, #03a9f4); }
+    .goal-pct { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); margin-top: 0.4rem; min-height: 1em; }
 
     /* Chart Controls */
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -302,53 +315,42 @@
         
         <!-- Top Stats Row -->
         <div class="grid-3">
-          
+
           <div class="stat-card">
             <div class="stat-header">
               <h3 class="stat-title">Total Time Tracked</h3>
               <div class="stat-icon" style="background: rgba(96, 165, 250, 0.1); color: #60a5fa;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
             </div>
+            <div class="goal-row">
+              <span class="goal-label">Goal:</span>
+              <input type="number" class="goal-input" id="goal-period" min="0" step="0.5" placeholder="—">
+              <span class="goal-label">h</span>
+            </div>
             <div class="stat-value-container">
               <span class="stat-value" id="stat-time">0h 0m</span>
             </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <h3 class="stat-title">Tasks Completed</h3>
-              <div class="stat-icon" style="background: rgba(74, 222, 128, 0.1); color: #4ade80;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-            </div>
-            <div class="stat-value-container">
-              <span class="stat-value" id="stat-tasks">0</span>
-              <span class="stat-suffix" id="stat-tasks-total">/ 0 total</span>
-            </div>
+            <div class="goal-pct" id="stat-time-pct"></div>
             <div class="progress-track">
-              <div class="progress-fill" id="stat-tasks-progress" style="width: 0%"></div>
+              <div class="progress-fill progress-fill-blue" id="stat-time-progress" style="width: 0%"></div>
             </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-header">
-              <h3 class="stat-title">Overdue Tasks</h3>
-              <div class="stat-icon badge-red"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+              <h3 class="stat-title">Time Tracked Today</h3>
+              <div class="stat-icon" style="background: rgba(74, 222, 128, 0.1); color: #4ade80;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
             </div>
-            <div class="stat-value-container" style="align-items: center;">
-              <div>
-                <span class="stat-value" id="stat-overdue">0</span>
-                <span class="stat-suffix">tasks</span>
-              </div>
-              <span class="badge badge-red hidden" id="stat-overdue-label">Needs Attention</span>
-              <div id="overdue-note" class="text-red" style="font-size:0.75rem; margin-top:4px; display:none;"></div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <h3 class="stat-title">Completed Late</h3>
-              <div class="stat-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+            <div class="goal-row">
+              <span class="goal-label">Goal:</span>
+              <input type="number" class="goal-input" id="goal-today" min="0" step="0.5" placeholder="—">
+              <span class="goal-label">h</span>
             </div>
             <div class="stat-value-container">
-              <span class="stat-value" id="stat-late">0</span>
+              <span class="stat-value" id="stat-today-time">0h 0m</span>
+            </div>
+            <div class="goal-pct" id="stat-today-pct"></div>
+            <div class="progress-track">
+              <div class="progress-fill progress-fill-green" id="stat-today-progress" style="width: 0%"></div>
             </div>
           </div>
 
@@ -570,6 +572,22 @@
     barChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-bar-chart-select', barChartSelect.value); updateBarChart(); });
     pieChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-pie-chart-select', pieChartSelect.value); updatePieChart(); });
 
+    // Goal inputs — persist and re-render on change
+    const goalPeriodInput = document.getElementById('goal-period');
+    const goalTodayInput = document.getElementById('goal-today');
+    const savedGoalPeriod = localStorage.getItem('sp-dashboard-goal-period');
+    const savedGoalToday = localStorage.getItem('sp-dashboard-goal-today');
+    if (savedGoalPeriod) goalPeriodInput.value = savedGoalPeriod;
+    if (savedGoalToday) goalTodayInput.value = savedGoalToday;
+    goalPeriodInput.addEventListener('change', () => {
+      localStorage.setItem('sp-dashboard-goal-period', goalPeriodInput.value);
+      if (latestMetrics) updateDashboardUI(latestMetrics);
+    });
+    goalTodayInput.addEventListener('change', () => {
+      localStorage.setItem('sp-dashboard-goal-today', goalTodayInput.value);
+      if (latestMetrics) updateDashboardUI(latestMetrics);
+    });
+
     // --- RENDER LOGIC ---
     const updateDashboardUI = (metrics) => {
       latestMetrics = metrics;
@@ -578,36 +596,25 @@
       const sortedEntries = sortEntries(metrics.tableEntries, currentSort.key, currentSort.dir);
 
       document.getElementById('stat-time').innerText = formatTime(metrics.totalTimeSpent);
-      document.getElementById('stat-tasks').innerText = String(metrics.totalCompleted);
-      document.getElementById('stat-tasks-total').innerText = `/ ${metrics.totalTasks} total`;
-      
-      // Progress: completion rate of active tasks in the date range
-      // totalCompleted = unique tasks completed
-      // totalTasks = unique tasks with either time logged OR completed (note: table shows entries per-day,
-      //              so one task appearing on multiple days counts as 1 in the denominator)
-      const progress = metrics.totalTasks > 0 ? (metrics.totalCompleted / metrics.totalTasks) * 100 : 0;
-      document.getElementById('stat-tasks-progress').style.width = `${progress}%`;
-      
-      const overdueEl = document.getElementById('stat-overdue');
-      const overdueLabel = document.getElementById('stat-overdue-label');
-      const overdueNote = document.getElementById('overdue-note');
-      document.getElementById('stat-late').innerText = String(metrics.lateCompleted);
-      overdueEl.innerText = String(metrics.overdueTasks);
-      
-      if (metrics.overdueTasks > 0) {
-        overdueLabel.classList.remove('hidden');
-        overdueEl.classList.add('text-red');
-        overdueNote.classList.add('hidden');
-      } else {
-        overdueLabel.classList.add('hidden');
-        overdueEl.classList.remove('text-red');
-        if (metrics.unplannedCount > 0) {
-          overdueNote.classList.remove('hidden');
-          overdueNote.innerText = `${metrics.unplannedCount} task(s) have no due date so overdue is unavailable`;
-        } else {
-          overdueNote.classList.add('hidden');
-        }
-      }
+      document.getElementById('stat-today-time').innerText = formatTime(metrics.todayTimeSpent);
+
+      // Period time goal progress
+      const periodGoalH = parseFloat(document.getElementById('goal-period').value) || 0;
+      const periodGoalMs = periodGoalH * 3600000;
+      const periodPct = periodGoalMs > 0 ? Math.min((metrics.totalTimeSpent / periodGoalMs) * 100, 100) : 0;
+      document.getElementById('stat-time-progress').style.width = `${periodPct}%`;
+      document.getElementById('stat-time-pct').innerText = periodGoalMs > 0
+        ? `${Math.round(periodPct)}% of ${periodGoalH}h goal`
+        : '';
+
+      // Today time goal progress
+      const todayGoalH = parseFloat(document.getElementById('goal-today').value) || 0;
+      const todayGoalMs = todayGoalH * 3600000;
+      const todayPct = todayGoalMs > 0 ? Math.min((metrics.todayTimeSpent / todayGoalMs) * 100, 100) : 0;
+      document.getElementById('stat-today-progress').style.width = `${todayPct}%`;
+      document.getElementById('stat-today-pct').innerText = todayGoalMs > 0
+        ? `${Math.round(todayPct)}% of ${todayGoalH}h goal`
+        : '';
 
       updateBarChart();
       updatePieChart();
@@ -816,8 +823,11 @@
       const projectMap = {};
       projectsArr.forEach(p => projectMap[p.id] = p.title);
       
+      const todayStr = new Date().toISOString().split('T')[0];
+
       let metrics = {
         totalTimeSpent: 0,
+        todayTimeSpent: 0,
         totalCompleted: 0,
         totalTasks: 0,
         overdueTasks: 0,
@@ -960,6 +970,11 @@
           metrics.totalTimeSpent += taskTimeInRange;
           if (!metrics.projectData[pName]) metrics.projectData[pName] = 0;
           metrics.projectData[pName] += taskTimeInRange;
+        }
+
+        // Tally today's time (always, regardless of selected period)
+        if (task.timeSpentOnDay && task.timeSpentOnDay[todayStr]) {
+          metrics.todayTimeSpent += task.timeSpentOnDay[todayStr];
         }
 
         // count tasks that had activity OR were completed OR are due (in range)
