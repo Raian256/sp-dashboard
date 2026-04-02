@@ -247,6 +247,28 @@
     .details-table tr:last-child td { border-bottom: none; }
     .details-table tr:hover { background: rgba(255, 255, 255, 0.03); }
     .time-cell { font-family: monospace; font-size: 0.9rem; }
+
+    /* --- PROJECT LIFETIME CARDS --- */
+    .project-hours-section { margin-top: var(--s3, 1.5rem); }
+    .section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--s2, 1rem) 0; }
+    .project-hours-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s2, 1rem); }
+    .project-hour-card {
+      background: var(--bg, #121212);
+      border: 1px solid var(--divider-color, #333);
+      border-radius: var(--card-border-radius, 8px);
+      padding: var(--s2, 1rem);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    /* --- PERIOD COMPARISON --- */
+    .comparison { font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; white-space: nowrap; }
+    .comparison.up { color: #4ade80; }
+    .comparison.down { color: #f87171; }
+    .comparison.neutral { color: var(--text-color-muted, #9e9e9e); }
+
+    .project-hour-card .ph-name { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-hour-card .ph-value { font-size: 1.5rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -328,6 +350,7 @@
             </div>
             <div class="stat-value-container">
               <span class="stat-value" id="stat-time">0h 0m</span>
+              <span class="comparison neutral" id="stat-time-cmp"></span>
             </div>
             <div class="goal-pct" id="stat-time-pct"></div>
             <div class="progress-track">
@@ -347,6 +370,7 @@
             </div>
             <div class="stat-value-container">
               <span class="stat-value" id="stat-today-time">0h 0m</span>
+              <span class="comparison neutral" id="stat-today-cmp"></span>
             </div>
             <div class="goal-pct" id="stat-today-pct"></div>
             <div class="progress-track">
@@ -392,6 +416,12 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- All-time project hours -->
+        <div class="project-hours-section">
+          <h3 class="section-title">Total Hours per Project (All Time)</h3>
+          <div class="project-hours-grid" id="project-hours-grid"></div>
         </div>
       </div>
 
@@ -592,6 +622,41 @@
     });
 
     // --- RENDER LOGIC ---
+    const renderProjectLifetimeHours = () => {
+      const grid = document.getElementById('project-hours-grid');
+      const activeProjectIds = new Set();
+      const projectMap = {};
+      cachedProjects.forEach(p => {
+        if (!p.isHiddenFromMenu) {
+          projectMap[p.id] = p.title;
+          activeProjectIds.add(p.id);
+        }
+      });
+
+      const totals = {};
+      cachedTasks.forEach(task => {
+        // Skip tasks belonging to archived projects
+        if (task.projectId && !activeProjectIds.has(task.projectId)) return;
+        const pName = task.projectId && projectMap[task.projectId]
+          ? projectMap[task.projectId]
+          : 'Uncategorized';
+        const dayEntries = task.timeSpentOnDay || {};
+        for (const ms of Object.values(dayEntries)) {
+          totals[pName] = (totals[pName] || 0) + ms;
+        }
+      });
+
+      const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+      grid.innerHTML = sorted.length === 0
+        ? '<div style="color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem;">No time tracked yet.</div>'
+        : sorted.map(([name, ms]) => `
+          <div class="project-hour-card">
+            <span class="ph-name" title="${name}">${name}</span>
+            <span class="ph-value">${formatTime(ms)}</span>
+          </div>
+        `).join('');
+    };
+
     const updateDashboardUI = (metrics) => {
       latestMetrics = metrics;
 
@@ -600,6 +665,22 @@
 
       document.getElementById('stat-time').innerText = formatTime(metrics.totalTimeSpent);
       document.getElementById('stat-today-time').innerText = formatTime(metrics.todayTimeSpent);
+
+      // Period comparison with previous period
+      const renderComparison = (elId, current, previous) => {
+        const el = document.getElementById(elId);
+        if (previous === 0) {
+          el.textContent = current > 0 ? '—' : '';
+          el.className = 'comparison neutral';
+          return;
+        }
+        const pct = Math.round((current / previous) * 100);
+        const arrow = pct >= 100 ? '\u25B2' : '\u25BC';
+        el.textContent = `${arrow} ${pct}%`;
+        el.className = pct >= 100 ? 'comparison up' : 'comparison down';
+      };
+      renderComparison('stat-time-cmp', metrics.totalTimeSpent, metrics.prevPeriodTimeSpent);
+      renderComparison('stat-today-cmp', metrics.todayTimeSpent, metrics.yesterdayTimeSpent);
 
       // Period time goal progress
       const periodGoalH = parseFloat(document.getElementById('goal-period').value) || 0;
@@ -621,6 +702,7 @@
 
       updateBarChart();
       updatePieChart();
+      renderProjectLifetimeHours();
       renderTable(sortedEntries);
       updateSortIndicators();
     };
@@ -822,15 +904,32 @@
       const dateRange = getDatesInRange(dateFromStr, dateToStr);
       console.log("[sp-dashboard] computed date range", dateFromStr, dateToStr, dateRange);
 
+      // Compute previous period of same length for comparison
+      const rangeLenDays = dateRange.length;
+      const [fy, fm, fd] = dateFromStr.split('-').map(Number);
+      const prevEndObj = new Date(fy, fm - 1, fd);
+      prevEndObj.setDate(prevEndObj.getDate() - 1);
+      const prevStartObj = new Date(prevEndObj);
+      prevStartObj.setDate(prevEndObj.getDate() - rangeLenDays + 1);
+      const prevDateRange = new Set(getDatesInRange(toLocalDateStr(prevStartObj), toLocalDateStr(prevEndObj)));
+
+      // Yesterday string for today comparison
+      const todayObj = new Date();
+      const yesterdayObj = new Date(todayObj);
+      yesterdayObj.setDate(todayObj.getDate() - 1);
+      const yesterdayStr = toLocalDateStr(yesterdayObj);
+
       // Build lookup maps for faster processing
       const projectMap = {};
       projectsArr.forEach(p => projectMap[p.id] = p.title);
-      
+
       const todayStr = toLocalDateStr(new Date());
 
       let metrics = {
         totalTimeSpent: 0,
         todayTimeSpent: 0,
+        prevPeriodTimeSpent: 0,
+        yesterdayTimeSpent: 0,
         totalCompleted: 0,
         totalTasks: 0,
         overdueTasks: 0,
@@ -975,9 +1074,20 @@
           metrics.projectData[pName] += taskTimeInRange;
         }
 
-        // Tally today's time (always, regardless of selected period)
-        if (task.timeSpentOnDay && task.timeSpentOnDay[todayStr]) {
-          metrics.todayTimeSpent += task.timeSpentOnDay[todayStr];
+        // Tally today's and yesterday's time (always, regardless of selected period)
+        if (task.timeSpentOnDay) {
+          if (task.timeSpentOnDay[todayStr]) {
+            metrics.todayTimeSpent += task.timeSpentOnDay[todayStr];
+          }
+          if (task.timeSpentOnDay[yesterdayStr]) {
+            metrics.yesterdayTimeSpent += task.timeSpentOnDay[yesterdayStr];
+          }
+          // Tally previous period time
+          for (const [day, ms] of Object.entries(task.timeSpentOnDay)) {
+            if (prevDateRange.has(day)) {
+              metrics.prevPeriodTimeSpent += ms;
+            }
+          }
         }
 
         // count tasks that had activity OR were completed OR are due (in range)
