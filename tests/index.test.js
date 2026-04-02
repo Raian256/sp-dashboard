@@ -287,24 +287,33 @@ describe('Date Range Reporter UI', () => {
       const weekStartDaySelect = document.getElementById('week-start-day');
       const today = new Date();
 
-      // Test each weekday — verify processData runs and produces bars matching days in the week
+      // Test each weekday — verify processData runs without error
       for (const targetDay of [0, 1, 2, 3, 4, 5, 6]) {
         weekStartDaySelect.value = String(targetDay);
         weekStartDaySelect.dispatchEvent(new Event('change'));
         window.processData([], []);
-
-        const daysBack = (today.getDay() - targetDay + 7) % 7;
-        const expectedDays = daysBack + 1;
-        const barContainer = document.getElementById('bar-chart-container');
-        // bar chart 'time' view renders per-day bars matching the weekly date range
-        const barSelect = document.getElementById('bar-chart-select');
-        barSelect.value = 'time';
-        window.updateBarChart();
-        expect(barContainer.querySelectorAll('.bar-col').length).toBe(expectedDays);
       }
+      // bar chart period selector renders correct number of bars
+      const barContainer = document.getElementById('bar-chart-container');
+      const barSelect = document.getElementById('bar-chart-select');
+      const todayStr = window.toLocalDateStr(new Date());
+      const task = { id:'t1', parentId:null, title:'Test', isDone:false, timeSpentOnDay:{[todayStr]:3600000} };
+      window.processData([task], []);
+      barSelect.value = '7d';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBe(7);
+      barSelect.value = '30d';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBe(30);
+      barSelect.value = '8w';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBe(8);
+      barSelect.value = '12m';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBe(12);
     });
 
-    it('bar and pie charts should render for overdue and late types and details show badges', () => {
+    it('pie charts should render for overdue and late types and details show badges', () => {
       // prepare metrics with one overdue task and one late task
       const now = Date.now();
       const yesterdayStr = new Date(now - 86400000).toISOString().split('T')[0];
@@ -320,18 +329,7 @@ describe('Date Range Reporter UI', () => {
       expect(text).toContain('Overdue');
       expect(text).toContain('Late');
 
-      const barSelect = document.getElementById('bar-chart-select');
       const pieSelect = document.getElementById('pie-chart-select');
-      const barContainer = document.getElementById('bar-chart-container');
-
-      // bar chart type selector: verify different types render bars
-      barSelect.value = 'time';
-      window.updateBarChart();
-      expect(barContainer.querySelectorAll('.bar-col').length).toBeGreaterThan(0);
-
-      barSelect.value = 'overdue';
-      window.updateBarChart();
-      expect(barContainer.querySelectorAll('.bar-col').length).toBeGreaterThan(0);
 
       pieSelect.value = 'overdue';
       window.updatePieChart();
