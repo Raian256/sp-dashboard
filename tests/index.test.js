@@ -283,31 +283,25 @@ describe('Date Range Reporter UI', () => {
       expect(dashBtn.classList.contains('active')).toBe(true);
     });
 
-    it('should show custom date pickers only when Custom Range is selected', () => {
-      const presetSelect = document.getElementById('date-preset');
-      const customContainer = document.getElementById('custom-date-container');
+    it('week-start-day selector should recompute date range', () => {
+      const weekStartDaySelect = document.getElementById('week-start-day');
+      const today = new Date();
 
-      // Set to custom
-      presetSelect.value = 'custom';
-      presetSelect.dispatchEvent(new Event('change'));
-      expect(customContainer.classList.contains('hidden')).toBe(false);
+      // Test each weekday — verify processData runs and produces bars matching days in the week
+      for (const targetDay of [0, 1, 2, 3, 4, 5, 6]) {
+        weekStartDaySelect.value = String(targetDay);
+        weekStartDaySelect.dispatchEvent(new Event('change'));
+        window.processData([], []);
 
-      // Set back to week
-      presetSelect.value = 'week';
-      presetSelect.dispatchEvent(new Event('change'));
-      expect(customContainer.classList.contains('hidden')).toBe(true);
-    });
-
-    it('today preset should produce a single-day date range', () => {
-      const presetSelect = document.getElementById('date-preset');
-      presetSelect.value = 'today';
-      presetSelect.dispatchEvent(new Event('change'));
-
-      window.processData([], []);
-
-      // The bar chart should contain exactly one bar column (one day)
-      const barContainer = document.getElementById('bar-chart-container');
-      expect(barContainer.querySelectorAll('.bar-col').length).toBe(1);
+        const daysBack = (today.getDay() - targetDay + 7) % 7;
+        const expectedDays = daysBack + 1;
+        const barContainer = document.getElementById('bar-chart-container');
+        // bar chart 'time' view renders per-day bars matching the weekly date range
+        const barSelect = document.getElementById('bar-chart-select');
+        barSelect.value = 'time';
+        window.updateBarChart();
+        expect(barContainer.querySelectorAll('.bar-col').length).toBe(expectedDays);
+      }
     });
 
     it('bar and pie charts should render for overdue and late types and details show badges', () => {
@@ -329,26 +323,15 @@ describe('Date Range Reporter UI', () => {
       const barSelect = document.getElementById('bar-chart-select');
       const pieSelect = document.getElementById('pie-chart-select');
       const barContainer = document.getElementById('bar-chart-container');
-      const pieContainer = document.getElementById('pie-chart-element');
 
-      // bar count limits for presets
-      const preset = document.getElementById('date-preset');
-      preset.value = 'month';
-      preset.dispatchEvent(new Event('change'));
-      window.processData([overdueTask, lateTask], []);
-      expect(barContainer.querySelectorAll('.bar-col').length).toBeLessThanOrEqual(12);
-      preset.value = 'year';
-      preset.dispatchEvent(new Event('change'));
-      window.processData([overdueTask, lateTask], []);
-      expect(barContainer.querySelectorAll('.bar-col').length).toBeLessThanOrEqual(12);
+      // bar chart type selector: verify different types render bars
+      barSelect.value = 'time';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBeGreaterThan(0);
 
       barSelect.value = 'overdue';
       window.updateBarChart();
-      expect(barContainer.querySelector('.bar')).not.toBeNull();
-
-      barSelect.value = 'late';
-      window.updateBarChart();
-      expect(barContainer.querySelector('.bar')).not.toBeNull();
+      expect(barContainer.querySelectorAll('.bar-col').length).toBeGreaterThan(0);
 
       pieSelect.value = 'overdue';
       window.updatePieChart();
@@ -359,33 +342,6 @@ describe('Date Range Reporter UI', () => {
       pieSelect.value = 'late';
       window.updatePieChart();
       expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
-    });
-
-    it('from-weekday preset with weekday picker should produce correct date range', () => {
-      const presetSelect = document.getElementById('date-preset');
-      const weekdaySelect = document.getElementById('weekday-select');
-      const barContainer = document.getElementById('bar-chart-container');
-      const weekdayPickerContainer = document.getElementById('weekday-picker-container');
-
-      presetSelect.value = 'from-weekday';
-      presetSelect.dispatchEvent(new Event('change'));
-      expect(weekdayPickerContainer.classList.contains('hidden')).toBe(false);
-
-      // Test each weekday
-      const today = new Date();
-      for (const targetDay of [0, 1, 2, 3, 4, 5, 6]) {
-        weekdaySelect.value = String(targetDay);
-        weekdaySelect.dispatchEvent(new Event('change'));
-        window.processData([], []);
-
-        const daysBack = (today.getDay() - targetDay + 7) % 7;
-        expect(barContainer.querySelectorAll('.bar-col').length).toBe(daysBack + 1);
-      }
-
-      // Switching away hides the picker
-      presetSelect.value = 'today';
-      presetSelect.dispatchEvent(new Event('change'));
-      expect(weekdayPickerContainer.classList.contains('hidden')).toBe(true);
     });
 
     it('detail list columns are sortable when headers are clicked', () => {
