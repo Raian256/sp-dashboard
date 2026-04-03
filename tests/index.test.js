@@ -164,23 +164,12 @@ describe('Date Range Reporter UI', () => {
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(12);
     });
 
-    it('pie charts should render for overdue and late types', () => {
-      // prepare metrics with one overdue task and one late task
-      const now = Date.now();
-      const yesterdayStr = new Date(now - 86400000).toISOString().split('T')[0];
-      const overdueTask = { id:'t1', parentId:null, title:'Foo', isDone:false, dueDay:'2026-02-20', timeSpentOnDay:{'2026-02-20':0} };
-      const lateTask = { id:'t2', parentId:null, title:'Bar', isDone:true, doneOn: now, dueDay: yesterdayStr, timeSpentOnDay:{} };
-      window.processData([overdueTask, lateTask], []);
+    it('pie chart should render time tracked data', () => {
+      const todayStr = window.toLocalDateStr(new Date());
+      const task = { id:'t1', parentId:null, title:'Foo', isDone:false, dueDay: todayStr, timeSpentOnDay:{[todayStr]: 3600000} };
+      window.processData([task], []);
 
-      const pieSelect = document.getElementById('pie-chart-select');
       const pieLegend = document.getElementById('pie-legend-container');
-
-      pieSelect.value = 'overdue';
-      window.updatePieChart();
-      // JSDOM may not retain gradient string, but legend items should appear
-      expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
-
-      pieSelect.value = 'late';
       window.updatePieChart();
       expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
     });

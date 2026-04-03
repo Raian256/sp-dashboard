@@ -312,12 +312,6 @@
           <div class="chart-card">
             <div class="card-header">
               <h3 class="card-title">Project Breakdown</h3>
-              <select id="pie-chart-select" class="chart-select">
-                <option value="time">Time Tracked</option>
-                <option value="completed" selected>Tasks Completed</option>
-                <option value="overdue">Tasks Overdue</option>
-                <option value="late">Completed Late</option>
-              </select>
             </div>
             <div class="chart-container">
               <div class="pie-wrapper">
@@ -391,15 +385,10 @@
       processData(cachedTasks, cachedProjects);
     });
     const barChartSelect = document.getElementById('bar-chart-select');
-    const pieChartSelect = document.getElementById('pie-chart-select');
-
     const savedBar = localStorage.getItem('sp-dashboard-bar-chart-select');
-    const savedPie = localStorage.getItem('sp-dashboard-pie-chart-select');
     if (savedBar) barChartSelect.value = savedBar;
-    if (savedPie) pieChartSelect.value = savedPie;
 
     barChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-bar-chart-select', barChartSelect.value); updateBarChart(); });
-    pieChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-pie-chart-select', pieChartSelect.value); updatePieChart(); });
 
     // Goal inputs — persist and re-render on change
     const goalPeriodInput = document.getElementById('goal-period');
@@ -583,16 +572,7 @@
 
     const updatePieChart = () => {
       if (!latestMetrics) return;
-      const type = document.getElementById('pie-chart-select').value;
-      if (type === 'time') {
-        renderNativePieChart(latestMetrics.projectData, (v) => `${(v / 3600000).toFixed(1)}h`);
-      } else if (type === 'completed') {
-        renderNativePieChart(latestMetrics.projectCompletedData, (v) => `${Math.round(v)} tasks`);
-      } else if (type === 'overdue') {
-        renderNativePieChart(latestMetrics.projectOverdueData, (v) => `${Math.round(v)} tasks`);
-      } else if (type === 'late') {
-        renderNativePieChart(latestMetrics.projectLateData, (v) => `${Math.round(v)} tasks`);
-      }
+      renderNativePieChart(latestMetrics.projectData, (v) => `${(v / 3600000).toFixed(1)}h`);
     };
 
     const renderGenericBarChart = (chartData, containerId, color, formatFn) => {
@@ -769,9 +749,6 @@
         unplannedCount: 0, // tasks without a dueDay
         weeklyData: { labels: dateRange, data: new Array(dateRange.length).fill(0) },
         projectData: {},
-        projectCompletedData: {},
-        projectOverdueData: {},
-        projectLateData: {}
       };
 
       const now = Date.now();
@@ -819,10 +796,8 @@
           metrics.overdueTasks++;
           if (isLate) {
             metrics.lateCompleted++;
-            metrics.projectLateData[pName] = (metrics.projectLateData[pName] || 0) + 1;
           }
           countedOverdue.add(task.id);
-          metrics.projectOverdueData[pName] = (metrics.projectOverdueData[pName] || 0) + 1;
         }
 
         dateRange.forEach((dateStr, index) => {
@@ -838,7 +813,6 @@
 
           // Completed Logic
           if (task.isDone && task.doneOn && task.doneOn >= dayStart && task.doneOn <= dayEnd) {
-            metrics.projectCompletedData[pName] = (metrics.projectCompletedData[pName] || 0) + 1;
           }
         });
         
@@ -886,7 +860,6 @@
             const pName = task.projectId && projectMap[task.projectId]
                         ? projectMap[task.projectId]
                         : 'Uncategorized';
-            metrics.projectOverdueData[pName] = (metrics.projectOverdueData[pName] || 0) + 1;
             countedOverdue.add(task.id);
           }
         }
