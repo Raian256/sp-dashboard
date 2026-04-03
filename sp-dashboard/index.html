@@ -36,48 +36,14 @@
       gap: var(--s3, 1.5rem);
     }
     
-    .header {
-      display: flex;
-      flex-direction: column;
-      gap: var(--s, 0.5rem);
-    }
-    @media (min-width: 768px) { 
-      .header { 
-        flex-direction: row; 
-        justify-content: space-between; 
-        align-items: center; 
-      } 
-    }
-    
-    .title {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0 0 var(--s-quarter, 0.25rem) 0;
-    }
-    
-    .subtitle {
-      color: var(--text-color-muted, #9e9e9e);
-      margin: 0;
-      font-size: 1rem;
-    }
-    
-    .controls {
+    .week-start-footer {
       display: flex;
       align-items: center;
-      gap: var(--s, 0.5rem);
+      gap: 0.5rem;
+      margin-top: var(--s3, 1.5rem);
+      justify-content: flex-end;
     }
-    
-    .control-box {
-      background: var(--card-bg, #1e1e1e);
-      border: 1px solid var(--divider-color, #333);
-      border-radius: var(--card-border-radius, 8px);
-      padding: var(--s, 0.5rem) var(--s2, 1rem);
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .control-box label {
+    .week-start-footer label {
       font-size: 0.75rem;
       color: var(--text-color-muted, #9e9e9e);
     }
@@ -230,29 +196,6 @@
 
   <div class="container">
     
-    <!-- Header -->
-    <header class="header">
-      <div class="title-area">
-        <h1 class="title">Dashboard</h1>
-        <p class="subtitle">Select a time period to view metrics</p>
-      </div>
-      
-      <div class="controls">
-        <div class="control-box">
-          <label for="week-start-day">Week starts on</label>
-          <select id="week-start-day">
-            <option value="1">Monday</option>
-            <option value="2">Tuesday</option>
-            <option value="3">Wednesday</option>
-            <option value="4">Thursday</option>
-            <option value="5">Friday</option>
-            <option value="6">Saturday</option>
-            <option value="0">Sunday</option>
-          </select>
-        </div>
-      </div>
-    </header>
-
     <!-- Main Card Container -->
     <div class="main-card">
       <!-- ========================================== -->
@@ -342,6 +285,19 @@
           <h3 class="section-title">Total Hours per Project (All Time)</h3>
           <div class="project-alloc-summary" id="project-alloc-summary"></div>
           <div class="project-hours-grid" id="project-hours-grid"></div>
+        </div>
+
+        <div class="week-start-footer">
+          <label for="week-start-day">Week starts on</label>
+          <select id="week-start-day">
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+            <option value="0">Sunday</option>
+          </select>
         </div>
       </div>
 
