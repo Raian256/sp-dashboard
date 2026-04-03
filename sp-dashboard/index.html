@@ -911,11 +911,12 @@
       const dateRange = getDatesInRange(dateFromStr, dateToStr);
       console.log("[sp-dashboard] computed date range", dateFromStr, dateToStr, dateRange);
 
-      // Compute previous week for comparison
-      const prevEndObj = new Date(startObj);
-      prevEndObj.setDate(prevEndObj.getDate() - 1);
-      const prevStartObj = new Date(prevEndObj);
-      prevStartObj.setDate(prevEndObj.getDate() - 6);
+      // Compute previous week for comparison (only matching elapsed days)
+      const elapsedDays = dateRange.length;
+      const prevStartObj = new Date(startObj);
+      prevStartObj.setDate(prevStartObj.getDate() - 7);
+      const prevEndObj = new Date(prevStartObj);
+      prevEndObj.setDate(prevStartObj.getDate() + elapsedDays - 1);
       const prevDateRange = new Set(getDatesInRange(toLocalDateStr(prevStartObj), toLocalDateStr(prevEndObj)));
 
       // Yesterday string for today comparison
