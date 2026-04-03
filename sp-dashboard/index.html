@@ -107,41 +107,12 @@
       box-shadow: var(--whiteframe-shadow-2dp, 0 2px 4px rgba(0,0,0,0.1));
     }
 
-    /* --- TABS --- */
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--divider-color, #333);
-      padding: 0 var(--s2, 1rem);
-      background: var(--card-bg, #1e1e1e);
-      flex-shrink: 0;
-    }
-    
-    .tab-btn {
-      background: none;
-      border: none;
-      padding: var(--s2, 1rem) var(--s2, 1rem);
-      cursor: pointer;
-      color: var(--text-color-muted, #9e9e9e);
-      font-size: 1rem;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
-      outline: none;
-    }
-    
-    .tab-btn:hover { color: var(--text-color, #fff); }
-    .tab-btn.active {
-      color: var(--c-primary, #03a9f4);
-      border-bottom-color: var(--c-primary, #03a9f4);
-    }
-
     /* --- VIEWS --- */
     .view-content {
       flex: 1;
       overflow-y: auto;
       padding: var(--s3, 1.5rem);
     }
-    
-    .view-content.no-padding { padding: 0; }
     .hidden { display: none !important; }
     .text-red { color: #f87171 !important; }
 
@@ -162,15 +133,6 @@
     .stat-value { font-size: 2.25rem; font-weight: bold; }
     .stat-suffix { color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem; margin-left: 0.25rem; }
 
-    /* Badges */
-    .badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; }
-    .badge-red { background: rgba(248, 113, 113, 0.1); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.2); }
-    .badge-yellow { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
-    /* sorting arrows on table headers */
-    #view-details th.sorted-asc::after { content: ' ▲'; }
-    #view-details th.sorted-desc::after { content: ' ▼'; }
-    .badge-done { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.2); }
-    .badge-progress { background: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.2); }
 
     .stat-icon { padding: 0.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
     .stat-icon svg { width: 20px; height: 20px; }
@@ -227,27 +189,6 @@
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;}
     .legend-val { font-weight: 500; }
 
-    /* --- TABLE (DETAILED LIST) --- */
-    .details-table { width: 100%; border-collapse: collapse; text-align: left; }
-    .details-table th, .details-table td { 
-      padding: var(--s2, 1rem) var(--s3, 1.5rem); 
-      border-bottom: 1px solid var(--divider-color, #333); 
-    }
-    .details-table th { 
-      background: var(--card-bg, #1e1e1e); 
-      color: var(--text-color-muted, #9e9e9e); 
-      font-size: 0.75rem; 
-      text-transform: uppercase; 
-      font-weight: 500; 
-      position: sticky; 
-      top: 0; 
-      z-index: 10; 
-      box-shadow: 0 1px 0 var(--divider-color, #333); 
-    }
-    .details-table tr:last-child td { border-bottom: none; }
-    .details-table tr:hover { background: rgba(255, 255, 255, 0.03); }
-    .time-cell { font-family: monospace; font-size: 0.9rem; }
-
     /* --- PROJECT LIFETIME CARDS --- */
     .project-hours-section { margin-top: var(--s3, 1.5rem); }
     .section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--s2, 1rem) 0; }
@@ -300,12 +241,6 @@
 
     <!-- Main Card Container -->
     <div class="main-card">
-      <!-- Tabs -->
-      <div class="tabs">
-        <button id="tab-btn-dashboard" class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
-        <button id="tab-btn-details" class="tab-btn" onclick="switchTab('details')">Detailed List</button>
-      </div>
-
       <!-- ========================================== -->
       <!-- VIEW 1: DASHBOARD                          -->
       <!-- ========================================== -->
@@ -401,26 +336,6 @@
         </div>
       </div>
 
-      <!-- ========================================== -->
-      <!-- VIEW 2: DETAILED LIST                      -->
-      <!-- ========================================== -->
-      <div id="view-details" class="view-content no-padding hidden">
-        <table class="details-table">
-          <thead>
-            <tr>
-              <th data-sort="date">Date</th>
-              <th data-sort="projectName">Project</th>
-              <th data-sort="taskTitle">Task</th>
-              <th data-sort="timeSpent">Time Spent</th>
-              <th data-sort="status">Status</th>
-            </tr>
-          </thead>
-          <tbody id="details-table-body">
-            <!-- Rows injected by JS -->
-          </tbody>
-        </table>
-      </div>
-
     </div>
   </div>
 
@@ -456,78 +371,11 @@
       return dates;
     };
 
-    // --- TAB LOGIC ---
-    const switchTab = (tabId) => {
-      document.getElementById('view-dashboard').classList.add('hidden');
-      document.getElementById('view-details').classList.add('hidden');
-      document.getElementById('tab-btn-dashboard').classList.remove('active');
-      document.getElementById('tab-btn-details').classList.remove('active');
-
-      document.getElementById(`view-${tabId}`).classList.remove('hidden');
-      document.getElementById(`tab-btn-${tabId}`).classList.add('active');
-    };
-
     // --- GLOBALS ---
     let cachedTasks = [];
     let cachedProjects = [];
     let latestMetrics = null;
-    let currentSort = { key: 'date', dir: 'desc' }; // sorting state for details table
 
-    // helper to sort table entries by given field/key
-    const sortEntries = (entries, key, dir) => {
-      const cmp = (a, b) => {
-        let av = a[key];
-        let bv = b[key];
-        if (key === 'date') {
-          av = a.date || '';
-          bv = b.date || '';
-        } else if (key === 'timeSpent') {
-          av = a.timeSpent || 0;
-          bv = b.timeSpent || 0;
-        } else if (key === 'status') {
-          const label = e => e.late ? '2' : e.overdue ? '1' : e.isDone ? '3' : '0';
-          av = label(a);
-          bv = label(b);
-        } else {
-          av = (av || '').toString();
-          bv = (bv || '').toString();
-        }
-        if (av < bv) return dir === 'asc' ? -1 : 1;
-        if (av > bv) return dir === 'asc' ? 1 : -1;
-        return 0;
-      };
-      return [...entries].sort(cmp);
-    };
-
-    const updateSortIndicators = () => {
-      document.querySelectorAll('#view-details th').forEach(th => {
-        th.classList.remove('sorted-asc','sorted-desc');
-        const key = th.getAttribute('data-sort');
-        if (key === currentSort.key) {
-          th.classList.add(currentSort.dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-        }
-      });
-    };
-
-    const attachSortHandlers = () => {
-      document.querySelectorAll('#view-details th[data-sort]').forEach(th => {
-        th.style.cursor = 'pointer';
-        th.addEventListener('click', () => {
-          const key = th.getAttribute('data-sort');
-          if (currentSort.key === key) {
-            currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
-          } else {
-            currentSort.key = key;
-            currentSort.dir = 'asc';
-          }
-          if (latestMetrics) {
-            const sorted = sortEntries(latestMetrics.tableEntries, currentSort.key, currentSort.dir);
-            renderTable(sorted);
-          }
-          updateSortIndicators();
-        });
-      });
-    };
     // Base colors matching the UI kit logic (fallback hexes just in case)
     const PIE_COLORS = ['#03a9f4', '#b388ff', '#4ade80', '#f472b6', '#fbbf24', '#f87171', '#34d399', '#818cf8', '#a78bfa'];
 
@@ -608,9 +456,6 @@
     const updateDashboardUI = (metrics) => {
       latestMetrics = metrics;
 
-      // render table with current sort order
-      const sortedEntries = sortEntries(metrics.tableEntries, currentSort.key, currentSort.dir);
-
       document.getElementById('stat-time').innerText = formatTime(metrics.totalTimeSpent);
       document.getElementById('stat-today-time').innerText = formatTime(metrics.todayTimeSpent);
 
@@ -651,8 +496,6 @@
       updateBarChart();
       updatePieChart();
       renderProjectLifetimeHours();
-      renderTable(sortedEntries);
-      updateSortIndicators();
     };
 
     const updateBarChart = () => {
@@ -853,35 +696,6 @@
       pieEl.style.background = `conic-gradient(${gradientStops.join(', ')})`;
     };
 
-    const renderTable = (entries) => {
-      const tbody = document.getElementById('details-table-body');
-      
-      if (entries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-color-muted, #9e9e9e); padding: 3rem;">No tracked time found for this date range.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = entries.map(entry => `
-        <tr>
-          <td style="white-space: nowrap;">${formatDateShort(entry.date)}</td>
-          <td style="color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem;">${entry.projectName}</td>
-          <td style="font-weight: 500;">${entry.taskTitle}</td>
-          <td class="time-cell">${formatTime(entry.timeSpent)}</td>
-          <td>
-            ${
-              entry.late 
-                ? `<span class="badge badge-yellow">Late</span>`
-                : entry.overdue
-                ? `<span class="badge badge-red">Overdue</span>`
-                : entry.isDone 
-                ? `<span class="badge badge-done">Done</span>`
-                : `<span class="badge badge-progress">In Progress</span>`
-            }
-          </td>
-        </tr>
-      `).join('');
-    };
-
     // helper for normalizing a task's dueDay to day boundaries (UTC)
     const getDueBounds = (task) => {
       let dueStart = null;
@@ -945,8 +759,7 @@
         projectData: {},
         projectCompletedData: {},
         projectOverdueData: {},
-        projectLateData: {},
-        tableEntries: []
+        projectLateData: {}
       };
 
       const now = Date.now();
@@ -1009,16 +822,6 @@
           if (spentOnDate) {
             metrics.weeklyData.data[index] += spentOnDate;
             taskTimeInRange += spentOnDate;
-
-            metrics.tableEntries.push({
-              date: dateStr,
-              projectName: pName,
-              taskTitle: task.title || 'Untitled Task',
-              timeSpent: spentOnDate,
-              isDone: task.isDone,
-              overdue: isOverdue,
-              late: isLate
-            });
           }
 
           // Completed Logic
@@ -1027,37 +830,6 @@
           }
         });
         
-        // if completed in window with no time, add entry (but skip if we'll show an overdue/late badge)
-        if (taskTimeInRange === 0 && task.isDone && task.doneOn) {
-          const doneDate = toLocalDateStr(new Date(task.doneOn));
-          if (dateRange.includes(doneDate) && !(isOverdue || isLate)) {
-            metrics.tableEntries.push({
-              date: doneDate,
-              projectName: pName,
-              taskTitle: task.title || 'Untitled Task',
-              timeSpent: 0,
-              isDone: task.isDone,
-              overdue: isOverdue,
-              late: isLate
-            });
-          }
-        }
-        
-        // add a row for overdue or late tasks that had no time entries
-        if (taskTimeInRange === 0 && (isOverdue || isLate)) {
-          const badge = isLate ? 'Late' : 'Overdue';
-          const dateStr = dueStart ? toLocalDateStr(new Date(dueStart)) : '';
-          metrics.tableEntries.push({
-            date: dateStr,
-            projectName: pName,
-            taskTitle: `${task.title || 'Untitled Task'} (${badge})`,
-            timeSpent: 0,
-            isDone: task.isDone,
-            overdue: isOverdue,
-            late: isLate
-          });
-        }
-
         // Tally Project Time and Total Tasks if active in window
         if (taskTimeInRange > 0) {
           metrics.totalTimeSpent += taskTimeInRange;
@@ -1122,8 +894,6 @@
         console.warn("[sp-dashboard] WARNING: done tasks missing doneOn timestamp:", doneWithoutTimestamp.map(t => ({ id: t.id, title: t.title })));
       }
       
-      // Sort descending by date
-      metrics.tableEntries.sort((a, b) => b.date.localeCompare(a.date));
       // report any overdue tasks that had no time entries (might explain zero stats)
       const overdueNoTime = tasksArr.filter(t => {
         const keys = Object.keys(t.timeSpentOnDay || {});
@@ -1134,8 +904,6 @@
         console.log("[sp-dashboard] overdue tasks with no time entries", overdueNoTime);
       }
       updateDashboardUI(metrics);
-      // attach sort click handlers after table generated
-      attachSortHandlers();
     };
 
     // expose key utilities for testing (JSDOM environment won't execute script tags normally)
@@ -1143,11 +911,9 @@
     window.formatDateShort = formatDateShort;
     window.toLocalDateStr = toLocalDateStr;
     window.getDatesInRange = getDatesInRange;
-    window.switchTab = switchTab;
     window.processData = processData;
     window.updateBarChart = updateBarChart;
     window.updatePieChart = updatePieChart;
-    window.sortEntries = sortEntries;
 
     // --- SP INTEGRATION / NATIVE IFRAME COMMS ---
     const pullDataFromSP = async () => {

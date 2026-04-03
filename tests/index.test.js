@@ -13,11 +13,11 @@ describe('Date Range Reporter UI', () => {
     // Reset the DOM
     document.documentElement.innerHTML = html;
 
-    // In a JSDOM environment, we need to manually execute the script 
+    // In a JSDOM environment, we need to manually execute the script
     // because JSDOM doesn't run script tags automatically by default in Vitest
     const scriptElement = Array.from(document.querySelectorAll('script'))
       .find(s => !s.src && s.textContent.includes('processData'));
-    
+
     if (scriptElement) {
       // Execute the plugin logic in the global window context
       const runScript = new Function(scriptElement.textContent);
@@ -73,91 +73,6 @@ describe('Date Range Reporter UI', () => {
       expect(document.getElementById('stat-today-time').innerText).toBe('3h 0m');
     });
 
-    it('should honor dueDay provided initially', () => {
-      const now = Date.now();
-      const dueStr = new Date(now - 86400000).toISOString().split('T')[0];
-      const task = {
-        id: 't-initial',
-        parentId: null,
-        title: 'Initial Overdue',
-        isDone: false,
-        dueDay: dueStr,
-        timeSpentOnDay: {}
-      };
-      window.processData([task], []);
-      // table should include this task despite zero time, with Overdue badge
-      const row = document.querySelector('#details-table-body tr');
-      expect(row.textContent).toContain('Initial Overdue');
-      expect(row.textContent).toContain('Overdue');
-    });
-
-    it('should pick up overdue when dueDay is added later', () => {
-      const now = Date.now();
-      const task = {
-        id: 't-late',
-        parentId: null,
-        title: 'Late Task',
-        isDone: false,
-        // start without dueDay
-        timeSpentOnDay: {}
-      };
-      const tasks = [ task ];
-
-      // initial run: no overdue — table should be empty
-      window.processData(tasks, []);
-      const rowsBefore = document.querySelectorAll('#details-table-body tr');
-      expect(Array.from(rowsBefore).some(r => r.textContent.includes('Overdue'))).toBe(false);
-
-      // add dueDay yesterday and trigger again — table should now show Overdue row
-      task.dueDay = new Date(now - 86400000).toISOString().split('T')[0];
-      window.processData(tasks, []);
-      const rowsAfter = document.querySelectorAll('#details-table-body tr');
-      expect(Array.from(rowsAfter).some(r => r.textContent.includes('Overdue'))).toBe(true);
-    });
-
-    it('should not mark a task overdue/late if dueDay is added on the same day after completion', () => {
-      const now = Date.now();
-      const task = {
-        id: 't-add-today',
-        parentId: null,
-        title: 'Added Today',
-        isDone: true,
-        doneOn: now,
-        timeSpentOnDay: {}
-      };
-      const tasks = [ task ];
-      // initial run: no dueDay -> not overdue
-      window.processData(tasks, []);
-      let rows = document.querySelectorAll('#details-table-body tr');
-      expect(Array.from(rows).some(r => r.textContent.includes('Late') || r.textContent.includes('Overdue'))).toBe(false);
-
-      // now add dueDay equal to today — should still not be late
-      task.dueDay = new Date(now).toISOString().split('T')[0];
-      window.processData(tasks, []);
-      rows = document.querySelectorAll('#details-table-body tr');
-      expect(Array.from(rows).some(r => r.textContent.includes('Late'))).toBe(false);
-    });
-
-    it('should count a task done after its due day as overdue and late', () => {
-      const now = Date.now();
-      const due = new Date(now - 86400000); // yesterday
-      const task = {
-        id: 't-done-late',
-        parentId: null,
-        title: 'Done Late',
-        isDone: true,
-        doneOn: now,
-        dueDay: due.toISOString().split('T')[0],
-        timeSpentOnDay: {}
-      };
-      window.processData([task], []);
-      // table should include the task with Late badge despite zero time
-      const row = document.querySelector('#details-table-body tr');
-      expect(row.textContent).toContain('Done Late');
-      expect(row.textContent).toContain('Late');
-    });
-
-    // new tests covering dueDay/empty status
     it('should handle a task without dueDay by not marking it overdue', () => {
       const task = {
         id: 't-no-due',
@@ -167,49 +82,8 @@ describe('Date Range Reporter UI', () => {
         timeSpentOnDay: {}
       };
       window.processData([task], []);
-      // no time entries, no due date -> no rows in table and zero time
+      // no time entries, no due date -> zero time
       expect(document.getElementById('stat-time').innerText).toBe('0h 0m');
-      const rows = document.querySelectorAll('#details-table-body tr');
-      expect(Array.from(rows).some(r => r.textContent.includes('Overdue'))).toBe(false);
-    });
-
-    it('should not mark a task due today as late if completed same day', () => {
-      const now = Date.now();
-      const todayStr = new Date(now).toISOString().split('T')[0];
-      const task = {
-        id: 't-due-today',
-        parentId: null,
-        title: 'Due Today',
-        isDone: true,
-        doneOn: now,
-        dueDay: todayStr,
-        timeSpentOnDay: {}
-      };
-      window.processData([task], []);
-      // row should appear in detail list despite zero time, without Late badge
-      const row = document.querySelector('#details-table-body tr');
-      expect(row.textContent).toContain('Due Today');
-      expect(row.textContent).not.toContain('Late');
-    });
-
-    it('should count a completed subtask in total tasks', () => {
-      const now = Date.now();
-      const todayStr = new Date(now).toISOString().split('T')[0];
-      const sub = {
-        id: 'sub1',
-        parentId: 'parent',
-        title: 'subtask done',
-        isDone: true,
-        doneOn: now,
-        dueDay: todayStr,
-        timeSpentOnDay: { [todayStr]: 1800000 } // 30m
-      };
-      window.processData([sub], []);
-      // subtask time should be reflected in stat-time
-      expect(document.getElementById('stat-time').innerText).toBe('0h 30m');
-      // row should appear in table
-      const row = document.querySelector('#details-table-body tr');
-      expect(row.textContent).toContain('subtask done');
     });
 
     it('should count tasks due today in totalTasks denominator even with no time logged', () => {
@@ -223,7 +97,7 @@ describe('Date Range Reporter UI', () => {
         timeSpentOnDay: {}
       };
       window.processData([taskDueToday], []);
-      // Task due today with no time: zero period and today time, no table entry with time
+      // Task due today with no time: zero period and today time
       expect(document.getElementById('stat-time').innerText).toBe('0h 0m');
       expect(document.getElementById('stat-today-time').innerText).toBe('0h 0m');
     });
@@ -243,16 +117,16 @@ describe('Date Range Reporter UI', () => {
       // The same task appears in both lists (which can happen with completed tasks)
       const activeTasks = [doneTask];
       const archivedTasks = [doneTask];
-      
+
       // Deduplicate using Map (same logic as in pullDataFromSP)
       const taskMap = new Map();
       archivedTasks.forEach(task => taskMap.set(task.id, task));
       activeTasks.forEach(task => taskMap.set(task.id, task));
       const deduplicatedTasks = Array.from(taskMap.values());
-      
+
       // Should have only 1 unique task, not 2
       expect(deduplicatedTasks.length).toBe(1);
-      
+
       // Process the deduplicated list and verify only 1 task (not 2)
       window.processData(deduplicatedTasks, []);
       expect(deduplicatedTasks.length).toBe(1);
@@ -260,29 +134,6 @@ describe('Date Range Reporter UI', () => {
   });
 
   describe('Navigation & Interactivity', () => {
-    it('should switch between Dashboard and Detailed List tabs', () => {
-      const dashView = document.getElementById('view-dashboard');
-      const detailsView = document.getElementById('view-details');
-      const dashBtn = document.getElementById('tab-btn-dashboard');
-      const detailsBtn = document.getElementById('tab-btn-details');
-
-      // Default state: Dashboard should be visible and active
-      expect(dashView.classList.contains('hidden')).toBe(false);
-      expect(detailsView.classList.contains('hidden')).toBe(true);
-      expect(dashBtn.classList.contains('active')).toBe(true);
-
-      // Switch to details
-      window.switchTab('details');
-      expect(dashView.classList.contains('hidden')).toBe(true);
-      expect(detailsView.classList.contains('hidden')).toBe(false);
-      expect(detailsBtn.classList.contains('active')).toBe(true);
-
-      // back to dashboard again
-      window.switchTab('dashboard');
-      expect(dashView.classList.contains('hidden')).toBe(false);
-      expect(dashBtn.classList.contains('active')).toBe(true);
-    });
-
     it('week-start-day selector should recompute date range', () => {
       const weekStartDaySelect = document.getElementById('week-start-day');
       const today = new Date();
@@ -313,7 +164,7 @@ describe('Date Range Reporter UI', () => {
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(12);
     });
 
-    it('pie charts should render for overdue and late types and details show badges', () => {
+    it('pie charts should render for overdue and late types', () => {
       // prepare metrics with one overdue task and one late task
       const now = Date.now();
       const yesterdayStr = new Date(now - 86400000).toISOString().split('T')[0];
@@ -321,45 +172,17 @@ describe('Date Range Reporter UI', () => {
       const lateTask = { id:'t2', parentId:null, title:'Bar', isDone:true, doneOn: now, dueDay: yesterdayStr, timeSpentOnDay:{} };
       window.processData([overdueTask, lateTask], []);
 
-
-      // verify list badges
-      const rows = document.querySelectorAll('#details-table-body tr');
-      expect(rows.length).toBe(2);
-      const text = Array.from(rows).map(r => r.textContent).join(' ');
-      expect(text).toContain('Overdue');
-      expect(text).toContain('Late');
-
       const pieSelect = document.getElementById('pie-chart-select');
+      const pieLegend = document.getElementById('pie-legend-container');
 
       pieSelect.value = 'overdue';
       window.updatePieChart();
       // JSDOM may not retain gradient string, but legend items should appear
-      const pieLegend = document.getElementById('pie-legend-container');
       expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
 
       pieSelect.value = 'late';
       window.updatePieChart();
       expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
-    });
-
-    it('detail list columns are sortable when headers are clicked', () => {
-      // create two tasks with different dates
-      const taskA = { id:'a', parentId:null, title:'A', isDone:false, dueDay:'2026-01-01', timeSpentOnDay:{'2026-01-01':3600000} };
-      const taskB = { id:'b', parentId:null, title:'B', isDone:false, dueDay:'2026-01-02', timeSpentOnDay:{'2026-01-02':3600000} };
-      window.processData([taskA, taskB], []);
-      // capture initial order of date cells
-      const initial = Array.from(document.querySelectorAll('#details-table-body tr td:first-child')).map(td => td.textContent);
-      expect(initial.length).toBe(2);
-      // click date header to toggle order and check indicator
-      const dateTh = document.querySelector('#view-details th[data-sort="date"]');
-      dateTh.click();
-      expect(dateTh.classList.contains('sorted-asc')).toBe(true);
-      const after = Array.from(document.querySelectorAll('#details-table-body tr td:first-child')).map(td => td.textContent);
-      expect(after[0]).toBe(initial[1]);
-      expect(after[1]).toBe(initial[0]);
-      // clicking again flips direction
-      dateTh.click();
-      expect(dateTh.classList.contains('sorted-desc')).toBe(true);
     });
   });
 });
