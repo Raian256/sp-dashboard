@@ -107,6 +107,7 @@
     .progress-fill { height: 100%; transition: width 0.5s ease-out; }
     .progress-fill-blue { background: #60a5fa; }
     .progress-fill-green { background: #4ade80; }
+    .progress-fill-gradient { transition: width 0.5s ease-out, background-color 0.5s ease-out; }
 
     .goal-row { display: flex; align-items: center; gap: 4px; margin-bottom: 0.25rem; }
     .goal-label { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); }
@@ -242,7 +243,7 @@
             </div>
             <div class="goal-pct" id="stat-today-pct"></div>
             <div class="progress-track">
-              <div class="progress-fill progress-fill-green" id="stat-today-progress" style="width: 0%"></div>
+              <div class="progress-fill progress-fill-gradient" id="stat-today-progress" style="width: 0%"></div>
             </div>
           </div>
 
@@ -514,7 +515,13 @@
       const todayGoalH = parseFloat(document.getElementById('goal-today').value) || 0;
       const todayGoalMs = todayGoalH * 3600000;
       const todayPct = todayGoalMs > 0 ? Math.min((metrics.todayTimeSpent / todayGoalMs) * 100, 100) : 0;
-      document.getElementById('stat-today-progress').style.width = `${todayPct}%`;
+      const todayBar = document.getElementById('stat-today-progress');
+      todayBar.style.width = `${todayPct}%`;
+      // Red (0%) → Yellow (50%) → Green (100%)
+      const r = todayPct < 50 ? 248 : Math.round(248 - (todayPct - 50) * 2 * (248 - 74) / 100);
+      const g = todayPct < 50 ? Math.round(113 + todayPct * 2 * (222 - 113) / 100) : 222;
+      const b = todayPct < 50 ? Math.round(113 + todayPct * 2 * (128 - 113) / 100) : 128;
+      todayBar.style.backgroundColor = `rgb(${r},${g},${b})`;
       document.getElementById('stat-today-pct').innerText = todayGoalMs > 0
         ? `${Math.round(todayPct)}% of ${todayGoalH}h goal`
         : '';
