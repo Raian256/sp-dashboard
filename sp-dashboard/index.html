@@ -208,8 +208,22 @@
     .comparison.down { color: #f87171; }
     .comparison.neutral { color: var(--text-color-muted, #9e9e9e); }
 
+    .project-hour-card .ph-header { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; }
     .project-hour-card .ph-name { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-hour-card .ph-goal-row { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+    .project-hour-card .ph-goal-input {
+      background: transparent; border: none; border-bottom: 1px solid var(--divider-color, #333);
+      color: var(--text-color, #fff); font-size: 0.7rem; width: 32px; outline: none;
+      text-align: right; padding: 0 2px; -moz-appearance: textfield;
+    }
+    .project-hour-card .ph-goal-input::-webkit-outer-spin-button, .project-hour-card .ph-goal-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .project-hour-card .ph-goal-input:focus { border-bottom-color: var(--c-primary, #03a9f4); }
+    .project-hour-card .ph-goal-label { font-size: 0.65rem; color: var(--text-color-muted, #9e9e9e); }
     .project-hour-card .ph-value { font-size: 1.5rem; font-weight: bold; }
+    .project-hour-card .ph-weekly { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); margin-top: 0.15rem; }
+    .project-hour-card .ph-progress-track { width: 100%; height: 4px; background: var(--divider-color, #333); border-radius: 2px; margin-top: 0.25rem; overflow: hidden; }
+    .project-hour-card .ph-progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+    .project-alloc-summary { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -326,6 +340,7 @@
         <!-- All-time project hours -->
         <div class="project-hours-section">
           <h3 class="section-title">Total Hours per Project (All Time)</h3>
+          <div class="project-alloc-summary" id="project-alloc-summary"></div>
           <div class="project-hours-grid" id="project-hours-grid"></div>
         </div>
       </div>
@@ -407,8 +422,16 @@
     });
 
     // --- RENDER LOGIC ---
+    const loadProjectGoals = () => {
+      try { return JSON.parse(localStorage.getItem('sp-dashboard-project-goals') || '{}'); } catch { return {}; }
+    };
+    const saveProjectGoals = (goals) => {
+      localStorage.setItem('sp-dashboard-project-goals', JSON.stringify(goals));
+    };
+
     const renderProjectLifetimeHours = () => {
       const grid = document.getElementById('project-hours-grid');
+      const summaryEl = document.getElementById('project-alloc-summary');
       const activeProjectIds = new Set();
       const projectMap = {};
       cachedProjects.forEach(p => {
@@ -432,14 +455,67 @@
       });
 
       const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-      grid.innerHTML = sorted.length === 0
-        ? '<div style="color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem;">No time tracked yet.</div>'
-        : sorted.map(([name, ms]) => `
+      const goals = loadProjectGoals();
+      const weeklyGoalH = parseFloat(document.getElementById('goal-period').value) || 0;
+      const weeklyGoalMs = weeklyGoalH * 3600000;
+      const weeklyProjectTime = latestMetrics ? latestMetrics.projectData : {};
+
+      // Colors for progress bars (cycle through)
+      const barColors = ['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#f87171', '#2dd4bf', '#fb923c', '#e879f9'];
+
+      if (sorted.length === 0) {
+        grid.innerHTML = '<div style="color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem;">No time tracked yet.</div>';
+        summaryEl.textContent = '';
+        return;
+      }
+
+      grid.innerHTML = sorted.map(([name, ms], i) => {
+        const pct = goals[name] != null ? goals[name] : '';
+        const weeklyMs = weeklyProjectTime[name] || 0;
+        const projGoalMs = weeklyGoalMs > 0 && pct !== '' ? weeklyGoalMs * (parseFloat(pct) / 100) : 0;
+        const progressPct = projGoalMs > 0 ? Math.min((weeklyMs / projGoalMs) * 100, 100) : 0;
+        const color = barColors[i % barColors.length];
+        const weeklyLabel = weeklyMs > 0 ? formatTime(weeklyMs) : '0h 0m';
+        const goalLabel = projGoalMs > 0
+          ? `${Math.round(progressPct)}% of ${formatTime(projGoalMs)} goal`
+          : '';
+        return `
           <div class="project-hour-card">
-            <span class="ph-name" title="${name}">${name}</span>
+            <div class="ph-header">
+              <span class="ph-name" title="${name}">${name}</span>
+              <div class="ph-goal-row">
+                <input type="number" class="ph-goal-input" data-project="${name}" min="0" max="100" step="1" placeholder="—" value="${pct}">
+                <span class="ph-goal-label">%</span>
+              </div>
+            </div>
             <span class="ph-value">${formatTime(ms)}</span>
+            <span class="ph-weekly">This week: ${weeklyLabel}${goalLabel ? ' · ' + goalLabel : ''}</span>
+            ${projGoalMs > 0 ? `<div class="ph-progress-track"><div class="ph-progress-fill" style="width:${progressPct}%;background:${color}"></div></div>` : ''}
           </div>
-        `).join('');
+        `;
+      }).join('');
+
+      // Update allocation summary
+      const totalAlloc = sorted.reduce((sum, [name]) => sum + (parseFloat(goals[name]) || 0), 0);
+      const allocClass = totalAlloc === 100 ? 'color:#4ade80' : totalAlloc > 100 ? 'color:#f87171' : '';
+      summaryEl.innerHTML = totalAlloc > 0
+        ? `Weekly goal allocation: <strong style="${allocClass}">${totalAlloc}%</strong> of 100%`
+        : '';
+
+      // Attach change listeners to percentage inputs
+      grid.querySelectorAll('.ph-goal-input').forEach(input => {
+        input.addEventListener('change', () => {
+          const g = loadProjectGoals();
+          const val = input.value.trim();
+          if (val === '' || isNaN(parseFloat(val))) {
+            delete g[input.dataset.project];
+          } else {
+            g[input.dataset.project] = Math.max(0, Math.min(100, parseFloat(val)));
+          }
+          saveProjectGoals(g);
+          if (latestMetrics) renderProjectLifetimeHours();
+        });
+      });
     };
 
     const updateDashboardUI = (metrics) => {
