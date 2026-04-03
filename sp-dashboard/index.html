@@ -462,9 +462,14 @@
       // Period comparison with previous period
       const renderComparison = (elId, current, previous) => {
         const el = document.getElementById(elId);
-        if (previous === 0) {
-          el.textContent = current > 0 ? '—' : '';
+        if (current === 0 && previous === 0) {
+          el.textContent = '';
           el.className = 'comparison neutral';
+          return;
+        }
+        if (previous === 0) {
+          el.textContent = '\u25B2 new';
+          el.className = 'comparison up';
           return;
         }
         const pct = Math.round((current / previous) * 100);
@@ -528,15 +533,22 @@
           data: dateRange.map(d => dayTotals[d] || 0)
         };
       } else if (period === '8w') {
-        // Last 8 complete weeks ending on today's week
+        // Last 8 weeks aligned to the user's chosen week-start day
         const labels = [];
         const data = [];
+        const targetDay = parseInt(document.getElementById('week-start-day').value, 10);
+        const daysBack = (today.getDay() - targetDay + 7) % 7;
+        // Current week start
+        const currentWeekStart = new Date(today);
+        currentWeekStart.setDate(today.getDate() - daysBack);
         for (let w = 7; w >= 0; w--) {
-          const weekEnd = new Date(today);
-          weekEnd.setDate(today.getDate() - w * 7);
-          const weekStart = new Date(weekEnd);
-          weekStart.setDate(weekEnd.getDate() - 6);
-          const range = getDatesInRange(toLocalDateStr(weekStart), toLocalDateStr(weekEnd));
+          const weekStart = new Date(currentWeekStart);
+          weekStart.setDate(currentWeekStart.getDate() - w * 7);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          // Clamp the end to today for the current week
+          const effectiveEnd = w === 0 && weekEnd > today ? today : weekEnd;
+          const range = getDatesInRange(toLocalDateStr(weekStart), toLocalDateStr(effectiveEnd));
           let sum = 0;
           range.forEach(d => { sum += dayTotals[d] || 0; });
           const s = weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
