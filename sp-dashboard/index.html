@@ -494,10 +494,10 @@
           el.className = 'comparison up';
           return;
         }
-        const pct = Math.round((current / previous) * 100);
-        const arrow = pct >= 100 ? '\u25B2' : '\u25BC';
-        el.textContent = `${arrow} ${pct}%`;
-        el.className = pct >= 100 ? 'comparison up' : 'comparison down';
+        const pct = Math.round(((current - previous) / previous) * 100);
+        const arrow = pct >= 0 ? '\u25B2' : '\u25BC';
+        el.textContent = `${arrow} ${pct >= 0 ? '+' : ''}${pct}%`;
+        el.className = pct >= 0 ? 'comparison up' : 'comparison down';
       };
       renderComparison('stat-time-cmp', metrics.totalTimeSpent, metrics.prevPeriodTimeSpent);
       renderComparison('stat-today-cmp', metrics.todayTimeSpent, metrics.yesterdayTimeSpent);
