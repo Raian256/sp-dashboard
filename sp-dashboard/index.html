@@ -119,6 +119,9 @@
     .goal-input::-webkit-outer-spin-button, .goal-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .goal-input:focus { border-bottom-color: var(--c-primary, #03a9f4); }
     .goal-pct { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); margin-top: 0.4rem; min-height: 1em; }
+    .deficit-indicator { font-size: 0.75rem; font-weight: 600; margin-top: 0.25rem; min-height: 1em; }
+    .deficit-indicator.ahead { color: #4ade80; }
+    .deficit-indicator.behind { color: #f87171; }
 
     /* Chart Controls */
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -222,6 +225,7 @@
               <span class="comparison neutral" id="stat-time-cmp"></span>
             </div>
             <div class="goal-pct" id="stat-time-pct"></div>
+            <div class="deficit-indicator" id="stat-time-deficit"></div>
             <div class="progress-track">
               <div class="progress-fill progress-fill-blue" id="stat-time-progress" style="width: 0%"></div>
             </div>
@@ -511,6 +515,24 @@
         ? `${Math.round(periodPct)}% of ${periodGoalH}h goal`
         : '';
 
+      // Deficit indicator: goal / 6 working days vs actual
+      const deficitEl = document.getElementById('stat-time-deficit');
+      if (periodGoalMs > 0 && metrics.workingDaysElapsed > 0) {
+        const expectedMs = (periodGoalMs / 6) * metrics.workingDaysElapsed;
+        const diffMs = metrics.totalTimeSpent - expectedMs;
+        const diffH = Math.abs(diffMs / 3600000).toFixed(1);
+        if (diffMs >= 0) {
+          deficitEl.textContent = `${diffH}h ahead`;
+          deficitEl.className = 'deficit-indicator ahead';
+        } else {
+          deficitEl.textContent = `${diffH}h behind`;
+          deficitEl.className = 'deficit-indicator behind';
+        }
+      } else {
+        deficitEl.textContent = '';
+        deficitEl.className = 'deficit-indicator';
+      }
+
       // Today time goal progress
       const todayGoalH = parseFloat(document.getElementById('goal-today').value) || 0;
       const todayGoalMs = todayGoalH * 3600000;
@@ -758,6 +780,7 @@
 
       // Compute previous week for comparison (only matching elapsed days)
       const elapsedDays = dateRange.length;
+      const workingDaysElapsed = Math.min(elapsedDays, 6);
       const prevStartObj = new Date(startObj);
       prevStartObj.setDate(prevStartObj.getDate() - 7);
       const prevEndObj = new Date(prevStartObj);
@@ -786,6 +809,7 @@
         overdueTasks: 0,
         lateCompleted: 0, // completed after due date
         unplannedCount: 0, // tasks without a dueDay
+        workingDaysElapsed,
         weeklyData: { labels: dateRange, data: new Array(dateRange.length).fill(0) },
         projectData: {},
       };
