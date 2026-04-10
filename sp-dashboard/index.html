@@ -493,15 +493,20 @@
           el.className = 'comparison neutral';
           return;
         }
-        if (previous === 0) {
-          el.textContent = '\u25B2 new';
-          el.className = 'comparison up';
+        const diff = current - previous;
+        if (diff === 0) {
+          el.textContent = '\u25B2 0h';
+          el.className = 'comparison neutral';
           return;
         }
-        const pct = Math.round(((current - previous) / previous) * 100);
-        const arrow = pct >= 0 ? '\u25B2' : '\u25BC';
-        el.textContent = `${arrow} ${pct >= 0 ? '+' : ''}${pct}%`;
-        el.className = pct >= 0 ? 'comparison up' : 'comparison down';
+        const absDiff = Math.abs(diff);
+        const h = Math.floor(absDiff / 3600000);
+        const m = Math.round((absDiff % 3600000) / 60000);
+        const sign = diff >= 0 ? '+' : '-';
+        const arrow = diff >= 0 ? '\u25B2' : '\u25BC';
+        const timeStr = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+        el.textContent = `${arrow} ${sign}${timeStr}`;
+        el.className = diff >= 0 ? 'comparison up' : 'comparison down';
       };
       renderComparison('stat-time-cmp', metrics.totalTimeSpent, metrics.prevPeriodTimeSpent);
       renderComparison('stat-today-cmp', metrics.todayTimeSpent, metrics.yesterdayTimeSpent);
