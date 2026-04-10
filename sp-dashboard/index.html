@@ -511,13 +511,16 @@
       renderComparison('stat-time-cmp', metrics.totalTimeSpent, metrics.prevPeriodTimeSpent);
       renderComparison('stat-today-cmp', metrics.todayTimeSpent, metrics.yesterdayTimeSpent);
 
-      // Period time goal progress
+      // Period time goal progress (prorated to elapsed working days out of 6)
       const periodGoalH = parseFloat(document.getElementById('goal-period').value) || 0;
       const periodGoalMs = periodGoalH * 3600000;
-      const periodPct = periodGoalMs > 0 ? Math.min((metrics.totalTimeSpent / periodGoalMs) * 100, 100) : 0;
+      const proratedGoalMs = periodGoalMs > 0 && metrics.workingDaysElapsed > 0
+        ? (periodGoalMs / 6) * metrics.workingDaysElapsed : periodGoalMs;
+      const periodPct = proratedGoalMs > 0 ? Math.min((metrics.totalTimeSpent / proratedGoalMs) * 100, 100) : 0;
       document.getElementById('stat-time-progress').style.width = `${periodPct}%`;
-      document.getElementById('stat-time-pct').innerText = periodGoalMs > 0
-        ? `${Math.round(periodPct)}% of ${periodGoalH}h goal`
+      const proratedGoalH = proratedGoalMs / 3600000;
+      document.getElementById('stat-time-pct').innerText = proratedGoalMs > 0
+        ? `${Math.round(periodPct)}% of ${proratedGoalH.toFixed(1)}h prorated goal`
         : '';
 
       // Deficit indicator: goal / 6 working days vs actual
