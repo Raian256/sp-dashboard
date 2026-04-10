@@ -155,7 +155,8 @@ describe('Date Range Reporter UI', () => {
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(7);
       barSelect.value = '30d';
       window.updateBarChart();
-      expect(barContainer.querySelectorAll('.bar-col').length).toBe(30);
+      // 30d renders as SVG curve chart; each data point has a visible dot + hit area = 2 circles each
+      expect(barContainer.querySelectorAll('svg circle').length / 2).toBe(30);
       barSelect.value = '8w';
       window.updateBarChart();
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(8);
