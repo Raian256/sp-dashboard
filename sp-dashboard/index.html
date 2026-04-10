@@ -123,6 +123,21 @@
     .deficit-indicator.ahead { color: #4ade80; }
     .deficit-indicator.behind { color: #f87171; }
 
+    /* Weekly Review Banner */
+    .weekly-review { display: none; background: var(--card-bg, #1e1e1e); border: 1px solid var(--divider-color, #333); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
+    .weekly-review.visible { display: block; }
+    .weekly-review-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-color-muted, #9e9e9e); margin: 0 0 0.75rem 0; }
+    .weekly-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem; }
+    .wr-stat { text-align: center; }
+    .wr-stat-value { font-size: 1.5rem; font-weight: 700; }
+    .wr-stat-label { font-size: 0.7rem; color: var(--text-color-muted, #9e9e9e); text-transform: uppercase; letter-spacing: 0.03em; }
+    .wr-stat-sub { font-size: 0.7rem; color: var(--text-color-muted, #9e9e9e); margin-top: 0.15rem; }
+    .wr-days { display: flex; gap: 4px; justify-content: center; margin-bottom: 0.75rem; }
+    .wr-day { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; }
+    .wr-day.studied { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+    .wr-day.missed { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .wr-day.rest { background: rgba(158, 158, 158, 0.1); color: var(--text-color-muted, #9e9e9e); font-style: italic; }
+
     /* Chart Controls */
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .card-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
@@ -206,7 +221,10 @@
       <!-- VIEW 1: DASHBOARD                          -->
       <!-- ========================================== -->
       <div id="view-dashboard" class="view-content">
-        
+
+        <!-- Weekly Review Banner (rest day only) -->
+        <div class="weekly-review" id="weekly-review"></div>
+
         <!-- Top Stats Row -->
         <div class="grid-3">
 
@@ -482,6 +500,95 @@
     const updateDashboardUI = (metrics) => {
       latestMetrics = metrics;
 
+      // Weekly Review Banner — shown only on the rest day (last day of the week)
+      const weekStartDay = parseInt(document.getElementById('week-start-day').value, 10);
+      const restDayNum = (weekStartDay + 6) % 7;
+      const banner = document.getElementById('weekly-review');
+      const weekDates = metrics.weeklyData.labels;
+      const weekData = metrics.weeklyData.data;
+      if (new Date().getDay() === restDayNum && weekDates.length > 0) {
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        // Working days = all except the last (rest day)
+        const workingCount = Math.min(weekDates.length - 1, 6);
+        const workingData = weekData.slice(0, workingCount);
+        const daysStudied = workingData.filter(ms => ms > 0).length;
+
+        // Average daily (working days only)
+        const avgMs = metrics.totalTimeSpent / 6;
+
+        // Steadiness score: 100% = perfectly even, 0% = all time on one day
+        const mean = workingData.reduce((a, b) => a + b, 0) / workingData.length;
+        const variance = workingData.reduce((a, v) => a + (v - mean) ** 2, 0) / workingData.length;
+        const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+        // Max CV for N items is sqrt(N-1) when all mass is on one item
+        const maxCv = Math.sqrt(workingData.length - 1);
+        const steadiness = Math.round((1 - Math.min(cv / maxCv, 1)) * 100);
+
+        // Week-over-week trend: last 4 weeks totals from task data
+        const today = new Date();
+        const dayTotals = {};
+        cachedTasks.forEach(task => {
+          for (const [d, ms] of Object.entries(task.timeSpentOnDay || {})) {
+            dayTotals[d] = (dayTotals[d] || 0) + ms;
+          }
+        });
+        const weekTotals = [];
+        const daysBack = (today.getDay() - weekStartDay + 7) % 7;
+        const currentWeekStart = new Date(today);
+        currentWeekStart.setDate(today.getDate() - daysBack);
+        for (let w = 3; w >= 0; w--) {
+          const ws = new Date(currentWeekStart);
+          ws.setDate(currentWeekStart.getDate() - w * 7);
+          const we = new Date(ws);
+          we.setDate(ws.getDate() + 6);
+          const range = getDatesInRange(toLocalDateStr(ws), toLocalDateStr(we));
+          let sum = 0;
+          range.forEach(d => { sum += dayTotals[d] || 0; });
+          weekTotals.push(sum);
+        }
+        const trendHtml = weekTotals.map((ms, i) => {
+          const h = (ms / 3600000).toFixed(1) + 'h';
+          const isCurrent = i === weekTotals.length - 1;
+          return `<span style="${isCurrent ? 'font-weight:700;color:var(--text-color,#fff)' : ''}">${h}</span>`;
+        }).join(' <span style="color:var(--text-color-muted,#9e9e9e)">→</span> ');
+
+        // Day tiles
+        const dayTilesHtml = weekDates.map((d, i) => {
+          const dt = new Date(d + 'T00:00:00');
+          const name = dayNames[dt.getDay()];
+          const isRest = i === weekDates.length - 1;
+          const cls = isRest ? 'rest' : (weekData[i] > 0 ? 'studied' : 'missed');
+          return `<div class="wr-day ${cls}" title="${formatTime(weekData[i])}">${name}</div>`;
+        }).join('');
+
+        banner.innerHTML = `
+          <h3 class="weekly-review-title">This Week in Review</h3>
+          <div class="wr-days">${dayTilesHtml}</div>
+          <div class="weekly-review-grid">
+            <div class="wr-stat">
+              <div class="wr-stat-value">${daysStudied}<span style="font-size:0.9rem;font-weight:400">/6</span></div>
+              <div class="wr-stat-label">Days studied</div>
+            </div>
+            <div class="wr-stat">
+              <div class="wr-stat-value">${formatTime(avgMs)}</div>
+              <div class="wr-stat-label">Daily average</div>
+            </div>
+            <div class="wr-stat">
+              <div class="wr-stat-value">${steadiness}%</div>
+              <div class="wr-stat-label">Steadiness</div>
+            </div>
+          </div>
+          <div class="wr-stat" style="text-align:center;margin-top:0.25rem;">
+            <div style="font-size:0.85rem;">${trendHtml}</div>
+            <div class="wr-stat-label">4-week trend</div>
+          </div>
+        `;
+        banner.classList.add('visible');
+      } else {
+        banner.classList.remove('visible');
+      }
+
       document.getElementById('stat-time').innerText = formatTime(metrics.totalTimeSpent);
       document.getElementById('stat-today-time').innerText = formatTime(metrics.todayTimeSpent);
 
@@ -576,11 +683,19 @@
       });
 
       let chartData;
+      // Rest day = last day of the week = day before week-start
+      const weekStartDay = parseInt(document.getElementById('week-start-day').value, 10);
+      const restDay = (weekStartDay + 6) % 7; // 0=Sun..6=Sat
+
       if (period === '7d' || period === '30d') {
         const days = period === '7d' ? 7 : 30;
         const startObj = new Date(today);
         startObj.setDate(today.getDate() - days + 1);
         const dateRange = getDatesInRange(toLocalDateStr(startObj), todayStr);
+        const restIndices = new Set();
+        dateRange.forEach((d, i) => {
+          if (new Date(d + 'T00:00:00').getDay() === restDay) restIndices.add(i);
+        });
         chartData = {
           labels: dateRange.map(d => {
             const dt = new Date(d + 'T00:00:00');
@@ -588,7 +703,8 @@
               ? dt.toLocaleDateString(undefined, { weekday: 'short' })
               : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
           }),
-          data: dateRange.map(d => dayTotals[d] || 0)
+          data: dateRange.map(d => dayTotals[d] || 0),
+          restIndices
         };
       } else if (period === '8w') {
         // Last 8 weeks aligned to the user's chosen week-start day
@@ -683,15 +799,17 @@
       container.innerHTML = '';
       if (!chartData || chartData.data.length === 0) return;
       const maxVal = Math.max(...chartData.data, 1);
+      const restSet = chartData.restIndices || new Set();
       for (let i = 0; i < chartData.data.length; i++) {
         const val = chartData.data[i];
         const heightPct = (val / maxVal) * 100;
         const displayVal = formatFn(val);
+        const isRest = restSet.has(i);
         const col = document.createElement('div');
         col.className = 'bar-col';
         col.innerHTML = `
-          <div class="bar" style="height: ${heightPct}%; background: ${color};" data-val="${displayVal}"></div>
-          <div class="bar-label">${chartData.labels[i]}</div>
+          <div class="bar" style="height: ${heightPct}%; background: ${color};${isRest ? ' opacity: 0.3;' : ''}" data-val="${displayVal}"></div>
+          <div class="bar-label" style="${isRest ? 'font-style: italic;' : ''}">${chartData.labels[i]}${isRest ? ' (rest)' : ''}</div>
         `;
         container.appendChild(col);
       }
@@ -794,6 +912,7 @@
       const prevEndObj = new Date(prevStartObj);
       prevEndObj.setDate(prevStartObj.getDate() + elapsedDays - 1);
       const prevDateRange = new Set(getDatesInRange(toLocalDateStr(prevStartObj), toLocalDateStr(prevEndObj)));
+
 
       // Yesterday string for today comparison
       const todayObj = new Date();

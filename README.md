@@ -1,73 +1,63 @@
-# Dashboard Plugin for Super Productivity
+# Study Dashboard — Super Productivity Plugin
 
-A lightweight dashboard plugin for [Super Productivity](https://super-productivity.com) that visualizes time tracked, completed tasks, overdue items, and project breakdowns within a user‑defined date range. It ships as a self-contained HTML/JavaScript widget with no external dependencies and is styled to support light/dark themes.
+A personal study-time tracking dashboard built as a plugin for [Super Productivity](https://super-productivity.com). It gives a weekly overview of time spent studying, with configurable daily and weekly goals, progress tracking, and per-project breakdowns — all in a single self-contained HTML file with no external dependencies.
 
 ---
 
-## 🚀 Features
+## Features
 
-- Selectable date ranges: past week, month, year or custom range
-- Two views:
-  - **Dashboard** with key metrics, bar charts and pie charts
-  - **Detailed list** of individual time entries and task status
-
-## 🖼️ Preview
-
-Below are screenshots of the plugin rendered outside of the host app (mock data is used when `PluginAPI` is not available):
-
-![Dashboard View](assets/dashboard.png)
-*Dashboard with key metrics and charts.*
-
-![Detailed List View](assets/detailed_list.png)
-*Detailed list of individual time entries and task statuses.*
-
-*(Images are regenerated via the screenshot utility when the UI changes.)*
-
+- **Weekly time tracking** with configurable week start day
+- **Daily and weekly goals** with prorated progress bars and ahead/behind indicators
+- **Period comparisons** showing hour diffs vs. previous week / yesterday
+- **Time Tracked chart** — bar chart with Last 7 Days / 30 Days / 8 Weeks / 12 Months views
+- **Project Breakdown** — pie chart showing time distribution across projects
+- **Per-project hour cards** with weekly goal percentages and lifetime totals
 - Native charts rendered with vanilla JS and CSS (no charting libraries)
-- Responsive layout and theming consistent with Super Productivity
+- Light/dark theme support matching Super Productivity
 - Live updates when task data changes in the host app
-- Fallback mock data for standalone development and screenshots
+- Fallback mock data for standalone development
 
 ---
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```
 sp-dashboard/
-├── index.html            # Main UI (CSS + JS embedded)
-├── manifest.json.template # Template used at build time
-└── plugin.js             # Super Productivity integration script
-
-build/sp-dashboard/      # Generated distribution output
+├── index.html              # Main UI (CSS + JS embedded)
+├── manifest.json.template  # Template used at build time
+├── plugin.js               # Super Productivity integration script
+└── icon.svg                # Plugin icon
 
 tests/
-└── index.test.js         # Vitest/JSDOM unit tests
+└── index.test.js           # Vitest/JSDOM unit tests
 
-Makefile                 # Build & release helpers
-package.json             # Node tooling and dependencies
-README.md                # This file
+scripts/
+├── minify.sh               # HTML minifier
+├── screenshot.js           # Puppeteer screenshot generator
+└── check-js.js             # Syntax checker
+
+Makefile                    # Build & release helpers
+package.json                # Node tooling and dependencies
 ```
 
 > All plugin logic resides in a single HTML file to conform with the host app's plugin sandbox.
 
 ---
 
-## 📦 Installation
+## Installation
 
-1. Download the plugin files for the latest [Release](https://github.com/dougcooper/sp-dashboard/releases)
-2. Open Super Productivity
-3. Go to Settings → Plugins
-4. Click "Load Plugin from Folder"
-5. Select the `sp-dashboard` zip file
-6. The plugin will be activated automatically
+1. Download the latest [Release](https://github.com/dougcooper/sp-dashboard/releases)
+2. Open Super Productivity → Settings → Plugins
+3. Click "Load Plugin from Folder"
+4. Select the `sp-dashboard` zip file
 
 ---
 
-## 🔧 Development
+## Development
 
 ### Prerequisites
 
-- Node.js (18+) and npm/yarn installed
+- Node.js (18+) and npm
 - `make` available (macOS/Linux)
 
 ### Install dependencies
@@ -79,61 +69,35 @@ npm install
 ### Running tests
 
 ```bash
-npm test          # run once
-npm run test:watch # watch mode
-npm run test:coverage # generate coverage report
-# or simply
+npm test
 make test
 ```
-
-### Updating the screenshots
-
-The screenshots are stored under `assets/` and are tracked with Git LFS. You can regenerate them with:
-
-```bash
-npm run screenshot   # uses puppeteer, outputs images
-# or
-make screenshot
-```
-
-
-The tests load `index.html` via JSDOM and manually execute the embedded script. They cover utility functions, metric calculations, and basic UI interactions.
 
 ### Building for release
 
 ```bash
-make
-#or
-make build        # compiles plugin into /build/sp-dashboard zip ready for distribution
+make build       # minifies and zips into build/sp-dashboard
+make release     # build + tag + GitHub release (requires gh CLI)
 ```
 
-`make release` performs additional steps (tagging, GitHub release) and requires the GitHub CLI.
+### Updating screenshots
+
+```bash
+npm run screenshot   # outputs to assets/
+```
 
 ---
 
-## 📝 Usage Notes
+## How It Works
 
-- The plugin listens for Redux `ACTION` hooks from Super Productivity and posts a message to the iframe to refresh whenever the app state changes.
-- If the PluginAPI is unavailable (e.g. opening `index.html` directly in a browser), mock data is injected after a short timeout to make development easier.
-- Charts are rendered using CSS and DOM elements; they automatically bucket data if the date range contains more than 30 days.
-
----
-
-## ✅ Testing Guidelines
-
-- Add new unit tests for every new feature or logic change.
-- Mock `PluginAPI` where necessary using `vi.stubGlobal` or manual objects.
-- Cover edge cases such as empty date ranges, tasks without projects, overdue detection, and date manipulation.
+- `plugin.js` runs in the host app and listens for Redux `ACTION` hooks, posting `SP_STATE_CHANGED` messages to the iframe
+- `index.html` receives these messages and pulls task/project data via `PluginAPI`
+- All date calculations use local timezone; the week range is determined by the user-selected start day
+- Goals and UI preferences are persisted in `localStorage`
+- When opened standalone (no `PluginAPI`), mock data is loaded for development
 
 ---
 
-## 📬 Reporting Issues & Contributing
+## License
 
-Please file issues or pull requests against the [GitHub repository](https://github.com/dougcooper/sp-dashboard) with
-clear descriptions and, if applicable, screenshots. Contributions are welcome!
-
----
-
-## 🗂️ License
-
-MIT © 2026 Douglas Cooper
+MIT
