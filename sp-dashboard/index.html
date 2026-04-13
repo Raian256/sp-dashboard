@@ -258,7 +258,7 @@
             <div class="goal-pct" id="stat-time-pct"></div>
             <div class="deficit-indicator" id="stat-time-deficit"></div>
             <div class="progress-track">
-              <div class="progress-fill progress-fill-blue" id="stat-time-progress" style="width: 0%"></div>
+              <div class="progress-fill progress-fill-gradient" id="stat-time-progress" style="width: 0%"></div>
             </div>
           </div>
 
@@ -752,7 +752,13 @@
       const proratedGoalMs = periodGoalMs > 0 && metrics.workingDaysElapsed > 0
         ? (periodGoalMs / 6) * metrics.workingDaysElapsed : periodGoalMs;
       const periodPct = proratedGoalMs > 0 ? Math.min((metrics.totalTimeSpent / proratedGoalMs) * 100, 100) : 0;
-      document.getElementById('stat-time-progress').style.width = `${periodPct}%`;
+      const periodBar = document.getElementById('stat-time-progress');
+      periodBar.style.width = `${periodPct}%`;
+      // Red (0%) → Yellow (50%) → Green (100%)
+      const pr = periodPct < 50 ? 248 : Math.round(248 - (periodPct - 50) * 2 * (248 - 74) / 100);
+      const pg = periodPct < 50 ? Math.round(113 + periodPct * 2 * (222 - 113) / 100) : 222;
+      const pb = periodPct < 50 ? Math.round(113 + periodPct * 2 * (128 - 113) / 100) : 128;
+      periodBar.style.backgroundColor = `rgb(${pr},${pg},${pb})`;
       const proratedGoalH = proratedGoalMs / 3600000;
       document.getElementById('stat-time-pct').innerText = proratedGoalMs > 0
         ? `${Math.round(periodPct)}% of ${proratedGoalH.toFixed(1)}h prorated goal`
