@@ -165,14 +165,6 @@ describe('Date Range Reporter UI', () => {
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(12);
     });
 
-    it('pie chart should render time tracked data', () => {
-      const todayStr = window.toLocalDateStr(new Date());
-      const task = { id:'t1', parentId:null, title:'Foo', isDone:false, dueDay: todayStr, timeSpentOnDay:{[todayStr]: 3600000} };
-      window.processData([task], []);
 
-      const pieLegend = document.getElementById('pie-legend-container');
-      window.updatePieChart();
-      expect(pieLegend.querySelector('.legend-item')).not.toBeNull();
-    });
   });
 });

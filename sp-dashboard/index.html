@@ -83,8 +83,16 @@
     .text-red { color: #f87171 !important; }
 
     /* --- DASHBOARD GRID --- */
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--s3, 1.5rem); margin-bottom: var(--s3, 1.5rem); }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--s3, 1.5rem); margin-bottom: var(--s3, 1.5rem); }
+    /* --- STATS ROW --- */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--s3, 1.5rem); margin-bottom: var(--s3, 1.5rem); }
+
+    /* --- COLLAPSIBLE CHART --- */
+    .collapsible-toggle { display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: var(--text-color-muted, #9e9e9e); font-size: 0.8rem; cursor: pointer; padding: 0.4rem 0; margin-top: var(--s3, 1.5rem); }
+    .collapsible-toggle:hover { color: var(--text-color, #fff); }
+    .collapsible-toggle .chevron { transition: transform 0.2s ease; font-size: 0.65rem; }
+    .collapsible-toggle.open .chevron { transform: rotate(90deg); }
+    .collapsible-body { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+    .collapsible-body.open { max-height: 400px; }
 
     .stat-card, .chart-card {
       background: var(--bg, #121212);
@@ -159,20 +167,6 @@
     }
     .bar-tooltip.visible { display: block; }
 
-    .pie-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 2rem; }
-    .pie-chart {
-      width: 180px; height: 180px; border-radius: 50%; flex-shrink: 0;
-      background: conic-gradient(var(--divider-color, #333) 0% 100%);
-      mask-image: radial-gradient(circle, transparent 58%, black 59%);
-      -webkit-mask-image: radial-gradient(circle, transparent 58%, black 59%);
-      transition: background 0.3s;
-    }
-    .pie-legend { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem; }
-    .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; }
-    .legend-label { display: flex; align-items: center; gap: 0.5rem; color: var(--text-color-muted, #9e9e9e); }
-    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;}
-    .legend-val { font-weight: 500; }
-
     /* --- PROJECT LIFETIME CARDS --- */
     .project-hours-section { margin-top: var(--s3, 1.5rem); }
     .section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--s2, 1rem) 0; }
@@ -208,6 +202,26 @@
     .project-hour-card .ph-progress-track { width: 100%; height: 4px; background: var(--divider-color, #333); border-radius: 2px; margin-top: 0.25rem; overflow: hidden; }
     .project-hour-card .ph-progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
     .project-alloc-summary { font-size: 0.75rem; color: var(--text-color-muted, #9e9e9e); margin-bottom: 0.5rem; }
+
+    /* --- ALLOCATION BALANCE BAR --- */
+    .alloc-bar-section { margin-bottom: 1rem; }
+    .alloc-bar-label { font-size: 0.7rem; color: var(--text-color-muted, #9e9e9e); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+    .alloc-bar-track { width: 100%; height: 14px; background: var(--divider-color, #333); border-radius: 7px; overflow: hidden; display: flex; }
+    .alloc-bar-track .alloc-seg { height: 100%; min-width: 2px; transition: width 0.3s ease; position: relative; }
+    .alloc-bar-target { display: flex; width: 100%; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 3px; }
+    .alloc-bar-target .alloc-seg { height: 100%; min-width: 2px; }
+    .alloc-bar-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.5rem; }
+    .alloc-legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--text-color-muted, #9e9e9e); }
+    .alloc-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .alloc-legend-pct { font-weight: 600; color: var(--text-color, #fff); }
+
+    /* --- FOCUS NUDGE --- */
+    .focus-nudge { display: none; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: var(--card-border-radius, 8px); padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-color, #fff); }
+    .focus-nudge.visible { display: flex; align-items: center; gap: 0.5rem; }
+    .focus-nudge-icon { font-size: 1rem; flex-shrink: 0; }
+    .focus-nudge-text { flex: 1; }
+    .focus-nudge-project { font-weight: 700; }
+    .focus-nudge-detail { color: var(--text-color-muted, #9e9e9e); font-size: 0.75rem; margin-left: 0.25rem; }
   </style>
 </head>
 <body>
@@ -224,8 +238,8 @@
         <!-- Weekly Review Banner (rest day only) -->
         <div class="weekly-review" id="weekly-review"></div>
 
-        <!-- Top Stats Row -->
-        <div class="grid-3">
+        <!-- Stats Row -->
+        <div class="stats-row">
 
           <div class="stat-card">
             <div class="stat-header">
@@ -270,10 +284,27 @@
 
         </div>
 
-        <!-- Charts Row -->
-        <div class="grid-2">
-          
-          <div class="chart-card">
+        <!-- All-time project hours -->
+        <div class="project-hours-section">
+          <h3 class="section-title">Total Hours per Project (All Time)</h3>
+          <div class="project-alloc-summary" id="project-alloc-summary"></div>
+          <div class="alloc-bar-section hidden" id="alloc-bar-section">
+            <div class="alloc-bar-label">Actual</div>
+            <div class="alloc-bar-track" id="alloc-bar-actual"></div>
+            <div class="alloc-bar-label" style="margin-top:6px">Target</div>
+            <div class="alloc-bar-target" id="alloc-bar-target"></div>
+            <div class="alloc-bar-legend" id="alloc-bar-legend"></div>
+          </div>
+          <div class="focus-nudge" id="focus-nudge"></div>
+          <div class="project-hours-grid" id="project-hours-grid"></div>
+        </div>
+
+        <!-- Collapsible Time Tracked Chart -->
+        <button class="collapsible-toggle" id="chart-toggle">
+          <span class="chevron">&#9654;</span> Time Tracked
+        </button>
+        <div class="collapsible-body" id="chart-collapsible">
+          <div class="chart-card" style="margin-top: 0.5rem;">
             <div class="card-header">
               <h3 class="card-title">Time Tracked</h3>
               <select id="bar-chart-select" class="chart-select">
@@ -287,26 +318,6 @@
               <div class="bar-chart" id="bar-chart-container"></div>
             </div>
           </div>
-
-          <div class="chart-card">
-            <div class="card-header">
-              <h3 class="card-title">Project Breakdown</h3>
-            </div>
-            <div class="chart-container">
-              <div class="pie-wrapper">
-                <div class="pie-chart" id="pie-chart-element"></div>
-                <div class="pie-legend" id="pie-legend-container"></div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- All-time project hours -->
-        <div class="project-hours-section">
-          <h3 class="section-title">Total Hours per Project (All Time)</h3>
-          <div class="project-alloc-summary" id="project-alloc-summary"></div>
-          <div class="project-hours-grid" id="project-hours-grid"></div>
         </div>
 
         <div class="week-start-footer">
@@ -363,9 +374,6 @@
     let cachedProjects = [];
     let latestMetrics = null;
 
-    // Base colors matching the UI kit logic (fallback hexes just in case)
-    const PIE_COLORS = ['#03a9f4', '#b388ff', '#4ade80', '#f472b6', '#fbbf24', '#f87171', '#34d399', '#818cf8', '#a78bfa'];
-
     // --- INITIALIZE UI ---
     const toLocalDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
@@ -382,6 +390,18 @@
     if (savedBar) barChartSelect.value = savedBar;
 
     barChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-bar-chart-select', barChartSelect.value); updateBarChart(); });
+
+    // Chart collapsible toggle
+    const chartToggle = document.getElementById('chart-toggle');
+    const chartBody = document.getElementById('chart-collapsible');
+    const chartWasOpen = localStorage.getItem('sp-dashboard-chart-open') === '1';
+    if (chartWasOpen) { chartToggle.classList.add('open'); chartBody.classList.add('open'); }
+    chartToggle.addEventListener('click', () => {
+      const isOpen = chartBody.classList.toggle('open');
+      chartToggle.classList.toggle('open');
+      localStorage.setItem('sp-dashboard-chart-open', isOpen ? '1' : '0');
+      if (isOpen) updateBarChart();
+    });
 
     // Goal inputs — persist and re-render on change
     const goalPeriodInput = document.getElementById('goal-period');
@@ -410,12 +430,18 @@
     const renderProjectLifetimeHours = () => {
       const grid = document.getElementById('project-hours-grid');
       const summaryEl = document.getElementById('project-alloc-summary');
+      const allocBarSection = document.getElementById('alloc-bar-section');
+      const focusNudge = document.getElementById('focus-nudge');
       const activeProjectIds = new Set();
       const projectMap = {};
+      const projectColorByName = {};
       cachedProjects.forEach(p => {
         if (!p.isHiddenFromMenu) {
           projectMap[p.id] = p.title;
           activeProjectIds.add(p.id);
+          if (p.theme && p.theme.primary) {
+            projectColorByName[p.title] = p.theme.primary;
+          }
         }
       });
 
@@ -438,27 +464,131 @@
       const weeklyGoalMs = weeklyGoalH * 3600000;
       const weeklyProjectTime = latestMetrics ? latestMetrics.projectData : {};
 
-      // Colors for progress bars (cycle through)
-      const barColors = ['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#f87171', '#2dd4bf', '#fb923c', '#e879f9'];
+      // Colors: use project's theme color, fall back to cycling palette
+      const fallbackColors = ['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#f87171', '#2dd4bf', '#fb923c', '#e879f9'];
+      let fallbackIdx = 0;
+      const projectColors = {};
+      sorted.forEach(([name]) => {
+        projectColors[name] = projectColorByName[name] || fallbackColors[fallbackIdx++ % fallbackColors.length];
+      });
 
       if (sorted.length === 0) {
         grid.innerHTML = '<div style="color: var(--text-color-muted, #9e9e9e); font-size: 0.875rem;">No time tracked yet.</div>';
         summaryEl.textContent = '';
+        allocBarSection.classList.add('hidden');
+        focusNudge.classList.remove('visible');
         return;
       }
+
+      // Check if any project has a goal set
+      const hasAnyGoal = sorted.some(([name]) => goals[name] != null && goals[name] !== '');
+      const totalWeeklyMs = Object.values(weeklyProjectTime).reduce((s, v) => s + v, 0);
+      // Prorate weekly goal to elapsed working days (6 working days per week)
+      const workingDaysElapsed = latestMetrics ? latestMetrics.workingDaysElapsed : 0;
+      const proratedGoalMs = weeklyGoalMs > 0 && workingDaysElapsed > 0
+        ? (weeklyGoalMs / 6) * workingDaysElapsed : weeklyGoalMs;
+
+      // --- Feature 1: Allocation balance bar ---
+      if (hasAnyGoal && totalWeeklyMs > 0) {
+        allocBarSection.classList.remove('hidden');
+        const actualBar = document.getElementById('alloc-bar-actual');
+        const targetBar = document.getElementById('alloc-bar-target');
+        const legendEl = document.getElementById('alloc-bar-legend');
+
+        // Project colors already computed above
+
+        // Actual allocation segments
+        actualBar.innerHTML = sorted.map(([name]) => {
+          const weeklyMs = weeklyProjectTime[name] || 0;
+          const pct = totalWeeklyMs > 0 ? (weeklyMs / totalWeeklyMs) * 100 : 0;
+          if (pct < 0.5) return '';
+          return `<div class="alloc-seg" style="width:${pct}%;background:${projectColors[name]}" title="${name}: ${Math.round(pct)}% actual"></div>`;
+        }).join('');
+
+        // Target allocation segments
+        const totalGoalPct = sorted.reduce((sum, [name]) => sum + (parseFloat(goals[name]) || 0), 0);
+        targetBar.innerHTML = sorted.map(([name]) => {
+          const goalPct = parseFloat(goals[name]) || 0;
+          if (goalPct < 0.5) return '';
+          const normalizedPct = totalGoalPct > 0 ? (goalPct / totalGoalPct) * 100 : 0;
+          return `<div class="alloc-seg" style="width:${normalizedPct}%;background:${projectColors[name]};opacity:0.6" title="${name}: ${Math.round(goalPct)}% target"></div>`;
+        }).join('');
+
+        // Legend: project name, actual% vs target%
+        legendEl.innerHTML = sorted.filter(([name]) => {
+          const weeklyMs = weeklyProjectTime[name] || 0;
+          const goalPct = parseFloat(goals[name]) || 0;
+          return weeklyMs > 0 || goalPct > 0;
+        }).map(([name]) => {
+          const weeklyMs = weeklyProjectTime[name] || 0;
+          const actualPct = totalWeeklyMs > 0 ? Math.round((weeklyMs / totalWeeklyMs) * 100) : 0;
+          const goalPct = Math.round(parseFloat(goals[name]) || 0);
+          return `<span class="alloc-legend-item"><span class="alloc-legend-dot" style="background:${projectColors[name]}"></span>${name}: <span class="alloc-legend-pct">${actualPct}%</span> / ${goalPct}%</span>`;
+        }).join('');
+      } else {
+        allocBarSection.classList.add('hidden');
+      }
+
+      // --- Feature 2: Focus nudge — find the most under-invested project ---
+      if (hasAnyGoal && proratedGoalMs > 0 && totalWeeklyMs > 0) {
+        let worstName = null;
+        let worstDeficitMs = 0;
+        sorted.forEach(([name]) => {
+          const goalPct = parseFloat(goals[name]) || 0;
+          if (goalPct <= 0) return;
+          const projGoalMs = proratedGoalMs * (goalPct / 100);
+          const weeklyMs = weeklyProjectTime[name] || 0;
+          const deficit = projGoalMs - weeklyMs;
+          if (deficit > worstDeficitMs) {
+            worstDeficitMs = deficit;
+            worstName = name;
+          }
+        });
+        if (worstName && worstDeficitMs > 0) {
+          focusNudge.classList.add('visible');
+          focusNudge.innerHTML = `<span class="focus-nudge-icon">\u25C9</span><span class="focus-nudge-text">Focus on: <span class="focus-nudge-project">${worstName}</span><span class="focus-nudge-detail">(${formatTime(worstDeficitMs)} behind goal)</span></span>`;
+        } else {
+          focusNudge.classList.remove('visible');
+        }
+      } else {
+        focusNudge.classList.remove('visible');
+      }
+
+      // --- Feature 3: Color-coded card borders based on deviation ---
+      // Pre-compute deviation for each project
+      const deviationMap = {};
+      if (hasAnyGoal && proratedGoalMs > 0) {
+        sorted.forEach(([name]) => {
+          const goalPct = parseFloat(goals[name]) || 0;
+          if (goalPct <= 0) { deviationMap[name] = null; return; }
+          const projGoalMs = proratedGoalMs * (goalPct / 100);
+          const weeklyMs = weeklyProjectTime[name] || 0;
+          // ratio: 1.0 = on target, <1 = under, >1 = over
+          deviationMap[name] = projGoalMs > 0 ? weeklyMs / projGoalMs : null;
+        });
+      }
+
+      const getDeviationBorder = (name) => {
+        const ratio = deviationMap[name];
+        if (ratio == null) return 'border-color: var(--divider-color, #333)';
+        if (ratio >= 0.85 && ratio <= 1.15) return 'border-color: #4ade80'; // on track (green)
+        if (ratio >= 0.5) return 'border-color: #fbbf24'; // drifting (yellow)
+        return 'border-color: #f87171'; // significantly under (red)
+      };
 
       grid.innerHTML = sorted.map(([name, ms], i) => {
         const pct = goals[name] != null ? goals[name] : '';
         const weeklyMs = weeklyProjectTime[name] || 0;
-        const projGoalMs = weeklyGoalMs > 0 && pct !== '' ? weeklyGoalMs * (parseFloat(pct) / 100) : 0;
+        const projGoalMs = proratedGoalMs > 0 && pct !== '' ? proratedGoalMs * (parseFloat(pct) / 100) : 0;
         const progressPct = projGoalMs > 0 ? Math.min((weeklyMs / projGoalMs) * 100, 100) : 0;
-        const color = barColors[i % barColors.length];
+        const color = projectColors[name];
         const weeklyLabel = weeklyMs > 0 ? formatTime(weeklyMs) : '0h 0m';
         const goalLabel = projGoalMs > 0
           ? `${Math.round(progressPct)}% of ${formatTime(projGoalMs)} goal`
           : '';
+        const borderStyle = getDeviationBorder(name);
         return `
-          <div class="project-hour-card">
+          <div class="project-hour-card" style="${borderStyle}">
             <div class="ph-header">
               <span class="ph-name" title="${name}">${name}</span>
               <div class="ph-goal-row">
@@ -475,9 +605,8 @@
 
       // Update allocation summary
       const totalAlloc = sorted.reduce((sum, [name]) => sum + (parseFloat(goals[name]) || 0), 0);
-      const allocClass = totalAlloc === 100 ? 'color:#4ade80' : totalAlloc > 100 ? 'color:#f87171' : '';
       summaryEl.innerHTML = totalAlloc > 0
-        ? `Weekly goal allocation: <strong style="${allocClass}">${totalAlloc}%</strong> of 100%`
+        ? `Weekly goal allocation: <strong>${totalAlloc}%</strong> of 100%`
         : '';
 
       // Attach change listeners to percentage inputs
@@ -663,7 +792,6 @@
         : '';
 
       updateBarChart();
-      updatePieChart();
       renderProjectLifetimeHours();
     };
 
@@ -756,11 +884,6 @@
       } else {
         renderBarChartDirect(chartData, 'bar-chart-container', 'var(--c-primary, #03a9f4)', (v) => `${(v / 3600000).toFixed(1)}h`);
       }
-    };
-
-    const updatePieChart = () => {
-      if (!latestMetrics) return;
-      renderNativePieChart(latestMetrics.projectData, (v) => `${(v / 3600000).toFixed(1)}h`);
     };
 
     const renderGenericBarChart = (chartData, containerId, color, formatFn) => {
@@ -955,43 +1078,6 @@
           tooltip.classList.remove('visible');
         });
       });
-    };
-
-    const renderNativePieChart = (projectData, formatFn) => {
-      const pieEl = document.getElementById('pie-chart-element');
-      const legendEl = document.getElementById('pie-legend-container');
-      legendEl.innerHTML = '';
-      
-      const entries = Object.entries(projectData).sort((a,b) => b[1] - a[1]);
-      const totalVal = entries.reduce((acc, curr) => acc + curr[1], 0);
-
-      if (totalVal === 0 || entries.length === 0) {
-        pieEl.style.background = 'var(--divider-color, #333)';
-        legendEl.innerHTML = '<div class="text-muted text-sm">No data for selected period</div>';
-        return;
-      }
-
-      let gradientStops = [];
-      let currentPercent = 0;
-
-      entries.forEach(([name, val], index) => {
-        const color = PIE_COLORS[index % PIE_COLORS.length];
-        const percent = (val / totalVal) * 100;
-        
-        gradientStops.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
-        currentPercent += percent;
-
-        legendEl.innerHTML += `
-          <div class="legend-item">
-            <div class="legend-label">
-              <span class="legend-dot" style="background: ${color}"></span>
-              <span title="${name}">${name.length > 20 ? name.substring(0,20)+'...' : name}</span>
-            </div>
-            <div class="legend-val">${formatFn(val)}</div>
-          </div>
-        `;
-      });
-      pieEl.style.background = `conic-gradient(${gradientStops.join(', ')})`;
     };
 
     // helper for normalizing a task's dueDay to day boundaries (UTC)
@@ -1207,7 +1293,6 @@
     window.getDatesInRange = getDatesInRange;
     window.processData = processData;
     window.updateBarChart = updateBarChart;
-    window.updatePieChart = updatePieChart;
 
     // --- SP INTEGRATION / NATIVE IFRAME COMMS ---
     const pullDataFromSP = async () => {
@@ -1284,8 +1369,8 @@
         ];
 
         cachedProjects = [
-          { id: "p1", title: "Website Redesign" },
-          { id: "p2", title: "Marketing Campaign" }
+          { id: "p1", title: "Website Redesign", theme: { primary: "#42a5f5" } },
+          { id: "p2", title: "Marketing Campaign", theme: { primary: "#66bb6a" } }
         ];
 
         cachedTasks = [
