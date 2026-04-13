@@ -529,24 +529,26 @@
         allocBarSection.classList.add('hidden');
       }
 
-      // --- Feature 2: Focus nudge — find the most under-invested project ---
+      // --- Feature 2: Focus nudge — find the most under-invested project (lowest % of prorated goal achieved) ---
       if (hasAnyGoal && proratedGoalMs > 0 && totalWeeklyMs > 0) {
         let worstName = null;
-        let worstDeficitMs = 0;
+        let worstPct = Infinity;
         sorted.forEach(([name]) => {
           const goalPct = parseFloat(goals[name]) || 0;
           if (goalPct <= 0) return;
           const projGoalMs = proratedGoalMs * (goalPct / 100);
           const weeklyMs = weeklyProjectTime[name] || 0;
-          const deficit = projGoalMs - weeklyMs;
-          if (deficit > worstDeficitMs) {
-            worstDeficitMs = deficit;
+          const achievedPct = (weeklyMs / projGoalMs) * 100;
+          if (achievedPct < 100 && achievedPct < worstPct) {
+            worstPct = achievedPct;
             worstName = name;
           }
         });
-        if (worstName && worstDeficitMs > 0) {
+        if (worstName) {
+          const projGoalMs = proratedGoalMs * ((parseFloat(goals[worstName]) || 0) / 100);
+          const deficitMs = projGoalMs - (weeklyProjectTime[worstName] || 0);
           focusNudge.classList.add('visible');
-          focusNudge.innerHTML = `<span class="focus-nudge-icon">\u25C9</span><span class="focus-nudge-text">Focus on: <span class="focus-nudge-project">${worstName}</span><span class="focus-nudge-detail">(${formatTime(worstDeficitMs)} behind goal)</span></span>`;
+          focusNudge.innerHTML = `<span class="focus-nudge-icon">\u25C9</span><span class="focus-nudge-text">Focus on: <span class="focus-nudge-project">${worstName}</span><span class="focus-nudge-detail">(${Math.round(worstPct)}% of goal, ${formatTime(deficitMs)} behind)</span></span>`;
         } else {
           focusNudge.classList.remove('visible');
         }
