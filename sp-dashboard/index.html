@@ -131,6 +131,13 @@
     .deficit-indicator.ahead { color: #4ade80; }
     .deficit-indicator.behind { color: #f87171; }
 
+    /* Wind-down Banner */
+    .wind-down-banner { display: none; background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(248, 113, 113, 0.08)); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
+    .wind-down-banner.visible { display: block; }
+    .wind-down-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .wind-down-icon { font-size: 1.25rem; }
+    .wind-down-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #fb923c; margin: 0; }
+    .wind-down-body { font-size: 0.8rem; color: var(--text-color-muted, #9e9e9e); line-height: 1.5; margin-bottom: 0.75rem; }
     /* Weekly Review Banner */
     .weekly-review { display: none; background: var(--card-bg, #1e1e1e); border: 1px solid var(--divider-color, #333); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
     .weekly-review.visible { display: block; }
@@ -244,6 +251,9 @@
       <!-- ========================================== -->
       <div id="view-dashboard" class="view-content">
 
+        <!-- Wind-down Banner -->
+        <div class="wind-down-banner" id="wind-down-banner"></div>
+
         <!-- Weekly Review Banner (rest day only) -->
         <div class="weekly-review" id="weekly-review"></div>
 
@@ -330,6 +340,19 @@
         </div>
 
         <div class="week-start-footer">
+          <label for="wind-down-hour">Wind down at</label>
+          <select id="wind-down-hour">
+            <option value="">Off</option>
+            <option value="15">3 PM</option>
+            <option value="16">4 PM</option>
+            <option value="17">5 PM</option>
+            <option value="18">6 PM</option>
+            <option value="19">7 PM</option>
+            <option value="20">8 PM</option>
+            <option value="21">9 PM</option>
+            <option value="22">10 PM</option>
+          </select>
+          <span style="margin-left: 0.75rem;"></span>
           <label for="week-start-day">Week starts on</label>
           <select id="week-start-day">
             <option value="1">Monday</option>
@@ -427,6 +450,54 @@
       localStorage.setItem('sp-dashboard-goal-today', goalTodayInput.value);
       if (latestMetrics) updateDashboardUI(latestMetrics);
     });
+
+    // Wind-down hour setting
+    const windDownSelect = document.getElementById('wind-down-hour');
+    const savedWindDown = localStorage.getItem('sp-dashboard-wind-down-hour');
+    if (savedWindDown !== null) windDownSelect.value = savedWindDown;
+    windDownSelect.addEventListener('change', () => {
+      localStorage.setItem('sp-dashboard-wind-down-hour', windDownSelect.value);
+      if (latestMetrics) renderWindDownBanner();
+    });
+    const renderWindDownBanner = () => {
+      const banner = document.getElementById('wind-down-banner');
+      const hourStr = windDownSelect.value;
+      if (!hourStr) { banner.classList.remove('visible'); return; }
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const targetHour = parseInt(hourStr, 10);
+      // Active window: targetHour..23 and 0..4 (ends at 5 AM)
+      const inWindow = currentHour >= targetHour || currentHour < 5;
+      if (!inWindow) { banner.classList.remove('visible'); return; }
+
+      // Count pending tasks: due today (not done) or overdue (not done, past due)
+      const todayStr = toLocalDateStr(now);
+      let total = 0;
+
+      cachedTasks.forEach(task => {
+        if (task.isDone) return;
+        const { dueStart, dueEnd } = getDueBounds(task);
+        if (dueStart === null) return;
+        if (task.dueDay === todayStr || now.getTime() > dueEnd) {
+          total++;
+        }
+      });
+
+      if (total === 0) { banner.classList.remove('visible'); return; }
+
+      banner.innerHTML = `
+        <div class="wind-down-header">
+          <span class="wind-down-icon">\u{1F305}</span>
+          <h3 class="wind-down-title">Time to Wind Down</h3>
+        </div>
+        <div class="wind-down-body">
+          You have <strong>${total}</strong> task${total !== 1 ? 's' : ''} still pending or overdue.
+          Consider finishing up, deferring to tomorrow, or breaking remaining work into actionable next steps.
+        </div>
+      `;
+      banner.classList.add('visible');
+    };
 
     // --- RENDER LOGIC ---
     const loadProjectGoals = () => {
@@ -820,6 +891,7 @@
 
       updateBarChart();
       renderProjectLifetimeHours();
+      renderWindDownBanner();
     };
 
     const updateBarChart = () => {
