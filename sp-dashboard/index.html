@@ -573,9 +573,12 @@
       const getDeviationBorder = (name) => {
         const ratio = deviationMap[name];
         if (ratio == null) return 'border-color: var(--divider-color, #333)';
-        if (ratio >= 0.85 && ratio <= 1.15) return 'border-color: #4ade80'; // on track (green)
-        if (ratio >= 0.5) return 'border-color: #fbbf24'; // drifting (yellow)
-        return 'border-color: #f87171'; // significantly under (red)
+        // Continuous red → yellow → green based on ratio (0→1)
+        const pct = Math.min(ratio * 100, 100);
+        const r = pct < 50 ? 248 : Math.round(248 - (pct - 50) * 2 * (248 - 74) / 100);
+        const g = pct < 50 ? Math.round(113 + pct * 2 * (222 - 113) / 100) : 222;
+        const b = pct < 50 ? Math.round(113 + pct * 2 * (128 - 113) / 100) : 128;
+        return `border-color: rgb(${r},${g},${b})`;
       };
 
       grid.innerHTML = sorted.map(([name, ms], i) => {
