@@ -272,7 +272,7 @@
             </div>
             <div class="stat-value-container">
               <span class="stat-value" id="stat-time">0h 0m</span>
-              <span class="comparison neutral" id="stat-time-cmp"></span>
+              <span class="comparison neutral" id="stat-time-cmp" title="vs best of last 4 weeks"></span>
             </div>
             <div class="goal-pct" id="stat-time-pct"></div>
             <div class="deficit-indicator" id="stat-time-deficit"></div>
@@ -835,7 +835,8 @@
         el.textContent = `${arrow} ${sign}${timeStr}`;
         el.className = diff >= 0 ? 'comparison up' : 'comparison down';
       };
-      renderComparison('stat-time-cmp', metrics.totalTimeSpent, metrics.prevPeriodTimeSpent);
+      const bestPrevWeek = Math.max(...metrics.prevWeekTotals);
+      renderComparison('stat-time-cmp', metrics.totalTimeSpent, bestPrevWeek);
       renderComparison('stat-today-cmp', metrics.todayTimeSpent, metrics.yesterdayTimeSpent);
 
       // Period time goal progress (prorated to elapsed working days out of 6)
@@ -1208,14 +1209,17 @@
       const dateRange = getDatesInRange(dateFromStr, dateToStr);
       console.log("[sp-dashboard] computed date range", dateFromStr, dateToStr, dateRange);
 
-      // Compute previous week for comparison (only matching elapsed days)
+      // Compute previous 4 weeks for comparison (only matching elapsed days)
       const elapsedDays = dateRange.length;
       const workingDaysElapsed = Math.min(elapsedDays, 6);
-      const prevStartObj = new Date(startObj);
-      prevStartObj.setDate(prevStartObj.getDate() - 7);
-      const prevEndObj = new Date(prevStartObj);
-      prevEndObj.setDate(prevStartObj.getDate() + elapsedDays - 1);
-      const prevDateRange = new Set(getDatesInRange(toLocalDateStr(prevStartObj), toLocalDateStr(prevEndObj)));
+      const prevWeekRanges = [];
+      for (let w = 1; w <= 4; w++) {
+        const pwStart = new Date(startObj);
+        pwStart.setDate(pwStart.getDate() - 7 * w);
+        const pwEnd = new Date(pwStart);
+        pwEnd.setDate(pwStart.getDate() + elapsedDays - 1);
+        prevWeekRanges.push(new Set(getDatesInRange(toLocalDateStr(pwStart), toLocalDateStr(pwEnd))));
+      }
 
 
       // Yesterday string for today comparison
@@ -1233,7 +1237,7 @@
       let metrics = {
         totalTimeSpent: 0,
         todayTimeSpent: 0,
-        prevPeriodTimeSpent: 0,
+        prevWeekTotals: [0, 0, 0, 0],
         yesterdayTimeSpent: 0,
         totalCompleted: 0,
         totalTasks: 0,
@@ -1325,10 +1329,12 @@
           if (task.timeSpentOnDay[yesterdayStr]) {
             metrics.yesterdayTimeSpent += task.timeSpentOnDay[yesterdayStr];
           }
-          // Tally previous period time
+          // Tally previous 4 weeks time
           for (const [day, ms] of Object.entries(task.timeSpentOnDay)) {
-            if (prevDateRange.has(day)) {
-              metrics.prevPeriodTimeSpent += ms;
+            for (let w = 0; w < 4; w++) {
+              if (prevWeekRanges[w].has(day)) {
+                metrics.prevWeekTotals[w] += ms;
+              }
             }
           }
         }
