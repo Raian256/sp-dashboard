@@ -144,25 +144,41 @@ describe('Date Range Reporter UI', () => {
         weekStartDaySelect.dispatchEvent(new Event('change'));
         window.processData([], []);
       }
-      // bar chart period selector renders correct number of bars
+      // bar chart unit/display/count controls render correct number of bars
       const barContainer = document.getElementById('bar-chart-container');
-      const barSelect = document.getElementById('bar-chart-select');
+      const unitSel = document.getElementById('bar-chart-unit');
+      const displaySel = document.getElementById('bar-chart-display');
+      const countInput = document.getElementById('bar-chart-count');
       const todayStr = window.toLocalDateStr(new Date());
       const task = { id:'t1', parentId:null, title:'Test', isDone:false, timeSpentOnDay:{[todayStr]:3600000} };
       window.processData([task], []);
-      barSelect.value = '7d';
+
+      unitSel.value = 'days'; displaySel.value = 'bars'; countInput.value = '7';
       window.updateBarChart();
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(7);
-      barSelect.value = '30d';
+
+      unitSel.value = 'days'; displaySel.value = 'curve'; countInput.value = '30';
       window.updateBarChart();
-      // 30d renders as SVG curve chart; each data point has a visible dot + hit area = 2 circles each
+      // curve renders as SVG; each data point has a visible dot + hit area = 2 circles each
       expect(barContainer.querySelectorAll('svg circle').length / 2).toBe(30);
-      barSelect.value = '8w';
+
+      unitSel.value = 'weeks'; displaySel.value = 'bars'; countInput.value = '8';
       window.updateBarChart();
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(8);
-      barSelect.value = '12m';
+
+      unitSel.value = 'months'; displaySel.value = 'bars'; countInput.value = '12';
       window.updateBarChart();
       expect(barContainer.querySelectorAll('.bar-col').length).toBe(12);
+
+      // independent decisions: weeks as a curve
+      unitSel.value = 'weeks'; displaySel.value = 'curve'; countInput.value = '6';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('svg circle').length / 2).toBe(6);
+
+      // independent decisions: months as a curve
+      unitSel.value = 'months'; displaySel.value = 'curve'; countInput.value = '5';
+      window.updateBarChart();
+      expect(barContainer.querySelectorAll('svg circle').length / 2).toBe(5);
     });
 
 

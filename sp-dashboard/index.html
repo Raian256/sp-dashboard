@@ -157,6 +157,10 @@
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .card-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
     .chart-select { background: var(--card-bg, #1e1e1e); color: var(--text-color, #fff); border: 1px solid var(--divider-color, #333); border-radius: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    .chart-controls { display: flex; align-items: center; gap: 0.35rem; }
+    .chart-controls .chart-prefix { color: var(--text-color-muted, #9e9e9e); font-size: 0.75rem; }
+    .chart-count-input { background: var(--card-bg, #1e1e1e); color: var(--text-color, #fff); border: 1px solid var(--divider-color, #333); border-radius: 0.25rem; padding: 0.25rem 0.4rem; font-size: 0.75rem; width: 2.75rem; text-align: right; -moz-appearance: textfield; appearance: textfield; }
+    .chart-count-input::-webkit-outer-spin-button, .chart-count-input::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
 
     /* --- NATIVE CHARTS --- */
     .chart-container { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
@@ -326,12 +330,19 @@
           <div class="chart-card" style="margin-top: 0.5rem;">
             <div class="card-header">
               <h3 class="card-title">Time Tracked</h3>
-              <select id="bar-chart-select" class="chart-select">
-                <option value="7d">Last 7 Days</option>
-                <option value="30d">Last 30 Days</option>
-                <option value="8w">Last 8 Weeks</option>
-                <option value="12m">Last 12 Months</option>
-              </select>
+              <div class="chart-controls">
+                <span class="chart-prefix">Last</span>
+                <input id="bar-chart-count" class="chart-count-input" type="number" min="1" max="365" step="1" value="7" />
+                <select id="bar-chart-unit" class="chart-select">
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+                <select id="bar-chart-display" class="chart-select">
+                  <option value="bars">Bars</option>
+                  <option value="curve">Curve</option>
+                </select>
+              </div>
             </div>
             <div class="chart-container">
               <div class="bar-chart" id="bar-chart-container"></div>
@@ -417,11 +428,54 @@
       localStorage.setItem('sp-dashboard-week-start-day', weekStartDaySelect.value);
       processData(cachedTasks, cachedProjects);
     });
-    const barChartSelect = document.getElementById('bar-chart-select');
-    const savedBar = localStorage.getItem('sp-dashboard-bar-chart-select');
-    if (savedBar) barChartSelect.value = savedBar;
+    const barChartUnit = document.getElementById('bar-chart-unit');
+    const barChartDisplay = document.getElementById('bar-chart-display');
+    const barChartCountInput = document.getElementById('bar-chart-count');
+    const CHART_COUNT_DEFAULTS = { days: 7, weeks: 8, months: 12 };
+    const CHART_COUNT_MAX = { days: 365, weeks: 52, months: 60 };
+    const getSavedChartCount = (unit) => {
+      const raw = localStorage.getItem('sp-dashboard-chart-count-' + unit);
+      const n = raw == null ? CHART_COUNT_DEFAULTS[unit] : parseInt(raw, 10);
+      if (!Number.isFinite(n) || n < 1) return CHART_COUNT_DEFAULTS[unit];
+      return Math.min(n, CHART_COUNT_MAX[unit] || 365);
+    };
+    const getChartCount = (unit) => {
+      const fromInput = parseInt(barChartCountInput.value, 10);
+      if (Number.isFinite(fromInput) && fromInput >= 1) {
+        return Math.min(fromInput, CHART_COUNT_MAX[unit] || 365);
+      }
+      return getSavedChartCount(unit);
+    };
+    const syncChartCountInput = () => {
+      const u = barChartUnit.value;
+      barChartCountInput.value = String(getSavedChartCount(u));
+      barChartCountInput.max = String(CHART_COUNT_MAX[u] || 365);
+    };
+    const savedUnit = localStorage.getItem('sp-dashboard-chart-unit');
+    if (savedUnit && CHART_COUNT_DEFAULTS[savedUnit] != null) barChartUnit.value = savedUnit;
+    const savedDisplay = localStorage.getItem('sp-dashboard-chart-display');
+    if (savedDisplay === 'bars' || savedDisplay === 'curve') barChartDisplay.value = savedDisplay;
+    syncChartCountInput();
 
-    barChartSelect.addEventListener('change', () => { localStorage.setItem('sp-dashboard-bar-chart-select', barChartSelect.value); updateBarChart(); });
+    barChartUnit.addEventListener('change', () => {
+      localStorage.setItem('sp-dashboard-chart-unit', barChartUnit.value);
+      syncChartCountInput();
+      updateBarChart();
+    });
+    barChartDisplay.addEventListener('change', () => {
+      localStorage.setItem('sp-dashboard-chart-display', barChartDisplay.value);
+      updateBarChart();
+    });
+    barChartCountInput.addEventListener('change', () => {
+      const u = barChartUnit.value;
+      const max = CHART_COUNT_MAX[u] || 365;
+      let n = Math.floor(parseFloat(barChartCountInput.value) || CHART_COUNT_DEFAULTS[u]);
+      if (n < 1) n = 1;
+      if (n > max) n = max;
+      barChartCountInput.value = String(n);
+      localStorage.setItem('sp-dashboard-chart-count-' + u, String(n));
+      updateBarChart();
+    });
 
     // Chart collapsible toggle
     const chartToggle = document.getElementById('chart-toggle');
@@ -896,7 +950,9 @@
     };
 
     const updateBarChart = () => {
-      const period = document.getElementById('bar-chart-select').value;
+      const unit = document.getElementById('bar-chart-unit').value;
+      const display = document.getElementById('bar-chart-display').value;
+      const count = getChartCount(unit);
       const today = new Date();
       const todayStr = toLocalDateStr(today);
 
@@ -914,8 +970,8 @@
       const weekStartDay = parseInt(document.getElementById('week-start-day').value, 10);
       const restDay = (weekStartDay + 6) % 7; // 0=Sun..6=Sat
 
-      if (period === '7d' || period === '30d') {
-        const days = period === '7d' ? 7 : 30;
+      if (unit === 'days') {
+        const days = count;
         const startObj = new Date(today);
         startObj.setDate(today.getDate() - days + 1);
         const dateRange = getDatesInRange(toLocalDateStr(startObj), todayStr);
@@ -926,15 +982,15 @@
         chartData = {
           labels: dateRange.map(d => {
             const dt = new Date(d + 'T00:00:00');
-            return period === '7d'
+            return days <= 7
               ? dt.toLocaleDateString(undefined, { weekday: 'short' })
               : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
           }),
           data: dateRange.map(d => dayTotals[d] || 0),
           restIndices
         };
-      } else if (period === '8w') {
-        // Last 8 weeks aligned to the user's chosen week-start day
+      } else if (unit === 'weeks') {
+        // Last N weeks aligned to the user's chosen week-start day
         const labels = [];
         const data = [];
         const targetDay = parseInt(document.getElementById('week-start-day').value, 10);
@@ -942,7 +998,7 @@
         // Current week start
         const currentWeekStart = new Date(today);
         currentWeekStart.setDate(today.getDate() - daysBack);
-        for (let w = 7; w >= 0; w--) {
+        for (let w = count - 1; w >= 0; w--) {
           const weekStart = new Date(currentWeekStart);
           weekStart.setDate(currentWeekStart.getDate() - w * 7);
           const weekEnd = new Date(weekStart);
@@ -957,10 +1013,10 @@
           data.push(sum);
         }
         chartData = { labels, data };
-      } else if (period === '12m') {
+      } else if (unit === 'months') {
         const labels = [];
         const data = [];
-        for (let m = 11; m >= 0; m--) {
+        for (let m = count - 1; m >= 0; m--) {
           const monthDate = new Date(today.getFullYear(), today.getMonth() - m, 1);
           const year = monthDate.getFullYear();
           const month = monthDate.getMonth();
@@ -979,7 +1035,7 @@
         chartData = { labels, data };
       }
 
-      if (period === '30d') {
+      if (display === 'curve') {
         renderCurveChart(chartData, 'bar-chart-container', (v) => `${(v / 3600000).toFixed(1)}h`);
       } else {
         renderBarChartDirect(chartData, 'bar-chart-container', 'var(--c-primary, #03a9f4)', (v) => `${(v / 3600000).toFixed(1)}h`);
