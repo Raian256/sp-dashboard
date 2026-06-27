@@ -1669,6 +1669,14 @@
       }
     });
 
+    // Periodically refresh so the dashboard stays current even when no
+    // action fires (e.g. a running timer just ticking up over time).
+    setInterval(() => {
+      if (window.PluginAPI) {
+        pullDataFromSP();
+      }
+    }, 60000);
+
     // Initial Bootstrap & Fallback Data Generation
     setTimeout(() => {
       console.log("[sp-dashboard] bootstrap timeout fired; PluginAPI exists?", !!window.PluginAPI);
